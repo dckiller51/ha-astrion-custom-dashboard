@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Runs the same checks as CI's "code-quality" job, locally, in one go.
+set -e
+
+cd "$(dirname "$0")/.."
+
+echo "== ruff check =="
+ruff check custom_components/ tests/
+
+echo "== ruff format --check =="
+ruff format --check custom_components/ tests/
+
+echo "== mypy =="
+mypy custom_components/
+
+echo "== pylint =="
+pylint custom_components/
+
+echo "== pytest =="
+python3 -m pytest

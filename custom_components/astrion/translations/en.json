@@ -1,0 +1,45 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Device is already configured"
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "unknown": "Unexpected error"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "description": "Enter the IP address of your Astrion device (the local config server on port 8080 must be reachable).",
+        "title": "Set up Astrion Custom Dashboard"
+      }
+    }
+  },
+  "entity": {
+    "select": {
+      "page": {
+        "name": "Page"
+      }
+    },
+    "sensor": {
+      "current_page": {
+        "name": "Current page"
+      }
+    }
+  },
+  "services": {
+    "set_page": {
+      "description": "Jumps the Astrion remote's dashboard to the given page.",
+      "fields": {
+        "page": {
+          "description": "Name of the page to display, as configured in dashboard.json (case-insensitive).",
+          "name": "Page"
+        }
+      },
+      "name": "Set page"
+    }
+  }
+}

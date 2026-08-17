@@ -1,0 +1,7 @@
+set_page:
+  fields:
+    page:
+      required: true
+      example: "Media"
+      selector:
+        text:

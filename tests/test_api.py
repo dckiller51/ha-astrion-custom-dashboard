@@ -1,0 +1,104 @@
+"""Unit tests for AstrionClient.
+
+Pure asyncio/aiohttp-mock tests — no Home Assistant test harness needed,
+so these run under any Python/HA version, unlike the config_flow tests.
+"""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from custom_components.astrion.api import (
+    AstrionApiError,
+    AstrionClient,
+    AstrionPage,
+    AstrionPageNotFound,
+)
+
+
+def _fake_session(status: int, payload: Any) -> MagicMock:
+    """Build a ClientSession mock whose .request() yields one canned response."""
+    response = MagicMock()
+    response.status = status
+    response.json = AsyncMock(return_value=payload)
+    response.text = AsyncMock(return_value=str(payload))
+
+    @asynccontextmanager
+    async def _request(*_args: Any, **_kwargs: Any) -> AsyncIterator[MagicMock]:
+        yield response
+
+    session = MagicMock()
+    session.request = _request
+    return session
+
+
+@pytest.mark.asyncio
+async def test_async_get_pages() -> None:
+    """async_get_pages parses the /pages array into AstrionPage objects."""
+    session = _fake_session(
+        200, [{"index": 0, "name": "Lights"}, {"index": 1, "name": "Main"}]
+    )
+    client = AstrionClient(session, "10.0.0.5")
+
+    pages = await client.async_get_pages()
+
+    assert pages == [
+        AstrionPage(index=0, name="Lights"),
+        AstrionPage(index=1, name="Main"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_async_get_current_page() -> None:
+    """async_get_current_page parses the /current-page object."""
+    session = _fake_session(200, {"index": 1, "name": "Main"})
+    client = AstrionClient(session, "10.0.0.5")
+
+    page = await client.async_get_current_page()
+
+    assert page == AstrionPage(index=1, name="Main")
+
+
+@pytest.mark.asyncio
+async def test_async_get_current_page_unknown() -> None:
+    """A device that hasn't rendered a page yet reports name=None -> None."""
+    session = _fake_session(200, {"index": None, "name": None})
+    client = AstrionClient(session, "10.0.0.5")
+
+    assert await client.async_get_current_page() is None
+
+
+@pytest.mark.asyncio
+async def test_async_set_page_success() -> None:
+    """async_set_page returns the page the device actually switched to."""
+    session = _fake_session(200, {"status": "ok", "index": 2, "name": "Media"})
+    client = AstrionClient(session, "10.0.0.5")
+
+    page = await client.async_set_page("media")
+
+    assert page == AstrionPage(index=2, name="Media")
+
+
+@pytest.mark.asyncio
+async def test_async_set_page_not_found() -> None:
+    """An unknown page name raises AstrionPageNotFound, not a generic error."""
+    session = _fake_session(404, {"error": "no page named 'Nope'"})
+    client = AstrionClient(session, "10.0.0.5")
+
+    with pytest.raises(AstrionPageNotFound, match="Nope"):
+        await client.async_set_page("Nope")
+
+
+@pytest.mark.asyncio
+async def test_async_get_pages_server_error() -> None:
+    """A 5xx response raises the generic AstrionApiError."""
+    session = _fake_session(500, "boom")
+    client = AstrionClient(session, "10.0.0.5")
+
+    with pytest.raises(AstrionApiError):
+        await client.async_get_pages()

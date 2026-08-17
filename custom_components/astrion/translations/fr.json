@@ -1,0 +1,45 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Cet appareil est déjà configuré"
+    },
+    "error": {
+      "cannot_connect": "Échec de connexion",
+      "unknown": "Erreur inattendue"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "host": "Hôte",
+          "port": "Port"
+        },
+        "description": "Entrez l'adresse IP de votre appareil Astrion (le serveur de configuration local sur le port 8080 doit être joignable).",
+        "title": "Configurer Astrion Custom Dashboard"
+      }
+    }
+  },
+  "entity": {
+    "select": {
+      "page": {
+        "name": "Page"
+      }
+    },
+    "sensor": {
+      "current_page": {
+        "name": "Page actuelle"
+      }
+    }
+  },
+  "services": {
+    "set_page": {
+      "description": "Fait passer le tableau de bord de la télécommande Astrion sur la page indiquée.",
+      "fields": {
+        "page": {
+          "description": "Nom de la page à afficher, tel que défini dans dashboard.json (insensible à la casse).",
+          "name": "Page"
+        }
+      },
+      "name": "Définir la page"
+    }
+  }
+}
