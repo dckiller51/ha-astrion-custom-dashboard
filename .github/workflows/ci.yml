@@ -43,7 +43,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip setuptools wheel
-          pip install -e ".[dev]"
+          pip install .[dev]
       - name: Run Ruff check
         run: ruff check --fix custom_components/ tests/
       - name: Run Ruff format check
