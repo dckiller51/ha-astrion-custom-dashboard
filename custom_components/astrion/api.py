@@ -26,12 +26,32 @@ class AstrionPageNotFound(AstrionApiError):
     """Raised when /set-page is asked for a page name the device doesn't have."""
 
 
+class AstrionActivityNotFound(AstrionApiError):
+    """Raised when /activities/start gets an unknown id, or /activities/stop an unknown room."""
+
+
 @dataclass
 class AstrionPage:
     """One dashboard page, as reported by /pages or /current-page."""
 
     index: int
     name: str
+
+
+@dataclass
+class AstrionActivity:
+    """One trackable Activity, as reported by /activities.
+
+    Mirrors Astrion's own `TrackedActivity` — a composed Activity defined in
+    the dashboard builder, or a lightweight `"track": true` tile/hotkey
+    (which may or may not be backed by an actual Harmony Activity). Astrion
+    treats both uniformly, so this integration does too.
+    """
+
+    id: str
+    name: str
+    room: str
+    icon: str | None = None
 
 
 class AstrionClient:
@@ -65,6 +85,51 @@ class AstrionClient:
             raise AstrionApiError(f"Unexpected /set-page response: {data!r}")
         return AstrionPage(index=data["index"], name=data["name"])
 
+    async def async_get_activities(self) -> list[AstrionActivity]:
+        """Return every trackable Activity, in Astrion's own declaration order."""
+        data = await self._request("GET", "/activities")
+        if not isinstance(data, list):
+            raise AstrionApiError(f"Unexpected /activities response: {data!r}")
+        return [
+            AstrionActivity(
+                id=item["id"],
+                name=item["name"],
+                room=item["room"],
+                icon=item.get("icon"),
+            )
+            for item in data
+        ]
+
+    async def async_get_active_activities(self) -> dict[str, AstrionActivity | None]:
+        """Return the Activity currently active in each room (None if off)."""
+        data = await self._request("GET", "/activities/active")
+        if not isinstance(data, dict):
+            raise AstrionApiError(f"Unexpected /activities/active response: {data!r}")
+        result: dict[str, AstrionActivity | None] = {}
+        for room, value in data.items():
+            if value is None:
+                result[room] = None
+            else:
+                result[room] = AstrionActivity(
+                    id=value["id"], name=value["name"], room=room
+                )
+        return result
+
+    async def async_start_activity(self, activity_id: str) -> None:
+        """Start an Activity by id — the remote-control counterpart of tapping its tile."""
+        await self._request("POST", "/activities/start", data={"id": activity_id})
+
+    async def async_stop_activity(self, room: str) -> None:
+        """Stop whichever Activity is active in `room`, without starting another.
+
+        For a Harmony-backed Activity, Astrion sends PowerOff to that
+        Activity's own hub only — Harmony has no per-Activity stop command,
+        a hub always runs exactly one Activity, so this is the narrowest
+        possible "stop" and never touches a different room's hub, unlike a
+        blanket "turn everything off" button.
+        """
+        await self._request("POST", "/activities/stop", data={"room": room})
+
     async def _request(
         self, method: str, path: str, data: dict[str, Any] | None = None
     ) -> Any:
@@ -76,6 +141,14 @@ class AstrionClient:
                 if response.status == 404 and path == "/set-page":
                     payload = await response.json(content_type=None)
                     raise AstrionPageNotFound(payload.get("error", "unknown page"))
+                if response.status == 404 and path in (
+                    "/activities/start",
+                    "/activities/stop",
+                ):
+                    payload = await response.json(content_type=None)
+                    raise AstrionActivityNotFound(
+                        payload.get("error", "unknown activity or room")
+                    )
                 if response.status >= 400:
                     text = await response.text()
                     raise AstrionApiError(

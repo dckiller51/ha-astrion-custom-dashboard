@@ -12,8 +12,23 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import AstrionApiError, AstrionClient, AstrionPageNotFound
-from .const import ATTR_PAGE, DOMAIN, PLATFORMS, SERVICE_SET_PAGE, STARTUP_MESSAGE
+from .api import (
+    AstrionActivityNotFound,
+    AstrionApiError,
+    AstrionClient,
+    AstrionPageNotFound,
+)
+from .const import (
+    ATTR_ACTIVITY_ID,
+    ATTR_PAGE,
+    ATTR_ROOM,
+    DOMAIN,
+    PLATFORMS,
+    SERVICE_SET_PAGE,
+    SERVICE_START_ACTIVITY,
+    SERVICE_STOP_ACTIVITY,
+    STARTUP_MESSAGE,
+)
 from .coordinator import AstrionCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,6 +36,8 @@ _LOGGER = logging.getLogger(__name__)
 type AstrionConfigEntry = ConfigEntry[AstrionCoordinator]
 
 SET_PAGE_SCHEMA = vol.Schema({vol.Required(ATTR_PAGE): cv.string})
+START_ACTIVITY_SCHEMA = vol.Schema({vol.Required(ATTR_ACTIVITY_ID): cv.string})
+STOP_ACTIVITY_SCHEMA = vol.Schema({vol.Required(ATTR_ROOM): cv.string})
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> bool:
@@ -54,27 +71,79 @@ async def async_unload_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> 
 
 
 def _async_register_services(hass: HomeAssistant) -> None:
-    """Register the astrion.set_page service (idempotent)."""
-    if hass.services.has_service(DOMAIN, SERVICE_SET_PAGE):
-        return
+    """Register the astrion.* services (idempotent)."""
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_PAGE):
 
-    async def _async_set_page(call: ServiceCall) -> None:
-        page = call.data[ATTR_PAGE]
-        # Applies to every configured Astrion device — mirrors calling
-        # select.select_option on every astrion select entity, but lets an
-        # automation target by page name without knowing the entity_id.
-        for entry in hass.config_entries.async_entries(DOMAIN):
-            coordinator: AstrionCoordinator = entry.runtime_data
-            try:
-                await coordinator.client.async_set_page(page)
-            except AstrionPageNotFound as err:
-                raise HomeAssistantError(str(err)) from err
-            except AstrionApiError as err:
-                raise HomeAssistantError(
-                    f"Astrion device for entry {entry.title} unreachable: {err}"
-                ) from err
-            await coordinator.async_request_refresh()
+        async def _async_set_page(call: ServiceCall) -> None:
+            page = call.data[ATTR_PAGE]
+            # Applies to every configured Astrion device — mirrors calling
+            # select.select_option on every astrion select entity, but lets an
+            # automation target by page name without knowing the entity_id.
+            for entry in hass.config_entries.async_entries(DOMAIN):
+                coordinator: AstrionCoordinator = entry.runtime_data
+                try:
+                    await coordinator.client.async_set_page(page)
+                except AstrionPageNotFound as err:
+                    raise HomeAssistantError(str(err)) from err
+                except AstrionApiError as err:
+                    raise HomeAssistantError(
+                        f"Astrion device for entry {entry.title} unreachable: {err}"
+                    ) from err
+                await coordinator.async_request_refresh()
 
-    hass.services.async_register(
-        DOMAIN, SERVICE_SET_PAGE, _async_set_page, schema=SET_PAGE_SCHEMA
-    )
+        hass.services.async_register(
+            DOMAIN, SERVICE_SET_PAGE, _async_set_page, schema=SET_PAGE_SCHEMA
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_START_ACTIVITY):
+
+        async def _async_start_activity(call: ServiceCall) -> None:
+            activity_id = call.data[ATTR_ACTIVITY_ID]
+            # Same "every configured device" fan-out as set_page — a no-op
+            # for devices that don't have an Activity with this id, since
+            # activity ids are only unique within one device's dashboard.json.
+            for entry in hass.config_entries.async_entries(DOMAIN):
+                coordinator: AstrionCoordinator = entry.runtime_data
+                if not any(a.id == activity_id for a in coordinator.data.activities):
+                    continue
+                try:
+                    await coordinator.client.async_start_activity(activity_id)
+                except AstrionActivityNotFound as err:
+                    raise HomeAssistantError(str(err)) from err
+                except AstrionApiError as err:
+                    raise HomeAssistantError(
+                        f"Astrion device for entry {entry.title} unreachable: {err}"
+                    ) from err
+                await coordinator.async_request_refresh()
+
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_START_ACTIVITY,
+            _async_start_activity,
+            schema=START_ACTIVITY_SCHEMA,
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_STOP_ACTIVITY):
+
+        async def _async_stop_activity(call: ServiceCall) -> None:
+            room = call.data[ATTR_ROOM]
+            # Same fan-out again, skipping devices with no such room —
+            # room names are only unique within one device's dashboard.json.
+            for entry in hass.config_entries.async_entries(DOMAIN):
+                coordinator: AstrionCoordinator = entry.runtime_data
+                if room not in coordinator.data.rooms:
+                    continue
+                try:
+                    await coordinator.client.async_stop_activity(room)
+                except AstrionApiError as err:
+                    raise HomeAssistantError(
+                        f"Astrion device for entry {entry.title} unreachable: {err}"
+                    ) from err
+                await coordinator.async_request_refresh()
+
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_STOP_ACTIVITY,
+            _async_stop_activity,
+            schema=STOP_ACTIVITY_SCHEMA,
+        )

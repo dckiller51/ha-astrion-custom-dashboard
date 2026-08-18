@@ -32,5 +32,15 @@ CONF_PAGE = "page"
 UPDATE_INTERVAL_SECONDS = 10
 
 ATTR_PAGE = "page"
+ATTR_ROOM = "room"
+ATTR_ACTIVITY_ID = "activity_id"
 
 SERVICE_SET_PAGE = "set_page"
+SERVICE_START_ACTIVITY = "start_activity"
+SERVICE_STOP_ACTIVITY = "stop_activity"
+
+# select.activity_<room>'s "nothing running" option. A literal sentinel
+# rather than a per-room computed value, same spirit as select.page having
+# no such option (every page is always "on") — Activities are the one place
+# Astrion has an explicit off state.
+ACTIVITY_OFF_OPTION = "Off"

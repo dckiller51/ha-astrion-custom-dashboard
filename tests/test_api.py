@@ -14,6 +14,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.astrion.api import (
+    AstrionActivity,
+    AstrionActivityNotFound,
     AstrionApiError,
     AstrionClient,
     AstrionPage,
@@ -102,3 +104,77 @@ async def test_async_get_pages_server_error() -> None:
 
     with pytest.raises(AstrionApiError):
         await client.async_get_pages()
+
+
+@pytest.mark.asyncio
+async def test_async_get_activities() -> None:
+    """async_get_activities parses the /activities array into AstrionActivity objects."""
+    session = _fake_session(
+        200,
+        [
+            {
+                "id": "watch_appletv",
+                "name": "Watch Apple TV",
+                "room": "Salon",
+                "icon": None,
+            },
+            {
+                "id": "listen_spotify",
+                "name": "Listen Spotify",
+                "room": "Cuisine",
+                "icon": "mdi:music",
+            },
+        ],
+    )
+    client = AstrionClient(session, "10.0.0.5")
+
+    activities = await client.async_get_activities()
+
+    assert activities == [
+        AstrionActivity(
+            id="watch_appletv", name="Watch Apple TV", room="Salon", icon=None
+        ),
+        AstrionActivity(
+            id="listen_spotify", name="Listen Spotify", room="Cuisine", icon="mdi:music"
+        ),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_async_get_active_activities() -> None:
+    """async_get_active_activities parses per-room state, including a room that's off."""
+    session = _fake_session(
+        200,
+        {
+            "Salon": {"id": "watch_appletv", "name": "Watch Apple TV"},
+            "Cuisine": None,
+        },
+    )
+    client = AstrionClient(session, "10.0.0.5")
+
+    active = await client.async_get_active_activities()
+
+    assert active["Salon"] == AstrionActivity(
+        id="watch_appletv", name="Watch Apple TV", room="Salon"
+    )
+    assert active["Cuisine"] is None
+
+
+@pytest.mark.asyncio
+async def test_async_stop_activity_unknown_room() -> None:
+    """An unknown room raises AstrionActivityNotFound, not a generic error."""
+    session = _fake_session(404, {"error": "no such room 'Nope'"})
+    client = AstrionClient(session, "10.0.0.5")
+
+    with pytest.raises(AstrionActivityNotFound, match="Nope"):
+        await client.async_stop_activity("Nope")
+
+
+@pytest.mark.asyncio
+async def test_async_start_activity_unknown_id() -> None:
+    """An unknown activity id raises AstrionActivityNotFound, not a generic error."""
+    session = _fake_session(404, {"error": "no activity with id 'nope'"})
+    client = AstrionClient(session, "10.0.0.5")
+
+    with pytest.raises(AstrionActivityNotFound, match="nope"):
+        await client.async_start_activity("nope")

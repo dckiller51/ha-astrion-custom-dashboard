@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import AstrionApiError, AstrionClient
+from .api import AstrionActivity, AstrionApiError, AstrionClient
 from .const import DOMAIN, MANUFACTURER, MODEL, UPDATE_INTERVAL_SECONDS, VERSION
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,6 +22,20 @@ class AstrionData:
 
     page_names: list[str]
     current_page: str | None
+    activities: list[AstrionActivity]
+    active_by_room: dict[str, AstrionActivity | None]
+
+    @property
+    def rooms(self) -> list[str]:
+        """Every room with at least one trackable Activity, first-seen order."""
+        seen: dict[str, None] = {}
+        for activity in self.activities:
+            seen.setdefault(activity.room, None)
+        return list(seen)
+
+    def activities_in(self, room: str) -> list[AstrionActivity]:
+        """Return the activities available in one room, in declaration order."""
+        return [activity for activity in self.activities if activity.room == room]
 
 
 class AstrionCoordinator(DataUpdateCoordinator[AstrionData]):
@@ -55,10 +69,14 @@ class AstrionCoordinator(DataUpdateCoordinator[AstrionData]):
         try:
             pages = await self.client.async_get_pages()
             current = await self.client.async_get_current_page()
+            activities = await self.client.async_get_activities()
+            active_by_room = await self.client.async_get_active_activities()
         except AstrionApiError as err:
             raise UpdateFailed(str(err)) from err
 
         return AstrionData(
             page_names=[page.name for page in pages],
             current_page=current.name if current else None,
+            activities=activities,
+            active_by_room=active_by_room,
         )

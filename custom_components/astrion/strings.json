@@ -20,11 +20,17 @@
   },
   "entity": {
     "select": {
+      "activity": {
+        "name": "Activity ({room})"
+      },
       "page": {
         "name": "Page"
       }
     },
     "sensor": {
+      "active_activity": {
+        "name": "Active activity ({room})"
+      },
       "current_page": {
         "name": "Current page"
       }
@@ -40,6 +46,26 @@
         }
       },
       "name": "Set page"
+    },
+    "start_activity": {
+      "description": "Starts a Astrion Activity by id, in whichever room it belongs to.",
+      "fields": {
+        "activity_id": {
+          "description": "Id of the activity to start, as returned by the astrion device's /activities endpoint.",
+          "name": "Activity ID"
+        }
+      },
+      "name": "Start activity"
+    },
+    "stop_activity": {
+      "description": "Stops whichever Activity is currently active in a room, without starting another. For a Harmony-backed Activity this sends PowerOff to that Activity's own hub only.",
+      "fields": {
+        "room": {
+          "description": "Name of the room to stop, as configured in dashboard.json.",
+          "name": "Room"
+        }
+      },
+      "name": "Stop activity"
     }
   }
 }

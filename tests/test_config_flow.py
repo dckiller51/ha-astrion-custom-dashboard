@@ -44,6 +44,14 @@ def _mock_reachable_device(pages: list[AstrionPage]) -> Iterator[None]:
             "custom_components.astrion.api.AstrionClient.async_get_current_page",
             AsyncMock(return_value=pages[0] if pages else None),
         ),
+        patch(
+            "custom_components.astrion.api.AstrionClient.async_get_activities",
+            AsyncMock(return_value=[]),
+        ),
+        patch(
+            "custom_components.astrion.api.AstrionClient.async_get_active_activities",
+            AsyncMock(return_value={}),
+        ),
     ):
         yield
 
