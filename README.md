@@ -29,7 +29,7 @@ directory, then restart Home Assistant.
 
 ## Configuration
 
-**Settings → Devices & services → Add integration → Astrion Remote**, then
+**Settings → Devices & services → Add integration → Astrion Custom Dashboard**, then
 enter the IP address (and port, default `8080`) of your Astrion device.
 
 ## What you get
