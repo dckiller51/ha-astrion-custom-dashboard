@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Runs a local Home Assistant instance with this integration already linked
+# into config/custom_components/, for manual testing (add it from the UI:
+# Settings > Devices & services > Add integration > Astrion Custom Dashboard).
+set -e
+
+cd "$(dirname "$0")/.."
+
+export PYTHONPATH="${PYTHONPATH}:${PWD}"
+
+mkdir -p config/custom_components
+ln -sf "${PWD}/custom_components/astrion" config/custom_components/astrion
+
+python3 -m homeassistant --config config --debug

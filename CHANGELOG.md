@@ -1,0 +1,35 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+<!--next-version-placeholder-->
+
+## 2026.8.0
+
+### ✨ New features
+
+- Added a `sensor.active_activity_<room>` entity per room, showing which
+  Activity (composed, or a lightweight `track: true` tile) is currently
+  active there — `unknown`/`None` when nothing is running.
+- Added a `select.activity_<room>` entity per room, listing that room's
+  Activities plus an explicit `Off` option, to start or stop an Activity
+  from Home Assistant. Both entities are added dynamically as new rooms
+  are discovered, without requiring a reload.
+- Added the `astrion.start_activity` and `astrion.stop_activity` services
+  as id/room-based shortcuts, the same pattern as `astrion.set_page`.
+- `stop_activity` fixes the previous gap where the only way to end a
+  classic Harmony Activity was a blanket PowerOff hotkey — which, when a
+  single hub drives more than one room, turned every room on that hub off
+  instead of just the one being stopped. Stopping now targets only the
+  Activity's own hub.
+- Added a `select.page` entity per configured Astrion device, showing the
+  page currently displayed on the remote and allowing it to be changed from
+  Home Assistant (dashboards, `select.select_option`, automations).
+- Added the `astrion.set_page` service as a name-based shortcut for jumping
+  a remote to a given page without knowing its entity_id.
+- Config flow to add a remote by IP address and port (default `8080`),
+  validated against the device's `/pages` endpoint.
+
+### 📋 Requirements
+
+- Requires an Astrion Custom Dashboard v0.9.0 https://github.com/dckiller51/astrion-custom-dashboard/releases

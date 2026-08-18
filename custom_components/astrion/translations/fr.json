@@ -1,0 +1,71 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Cet appareil est déjà configuré"
+    },
+    "error": {
+      "cannot_connect": "Échec de connexion",
+      "unknown": "Erreur inattendue"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "host": "Hôte",
+          "port": "Port"
+        },
+        "description": "Entrez l'adresse IP de votre appareil Astrion (le serveur de configuration local sur le port 8080 doit être joignable).",
+        "title": "Configurer Astrion Custom Dashboard"
+      }
+    }
+  },
+  "entity": {
+    "select": {
+      "activity": {
+        "name": "Activité ({room})"
+      },
+      "page": {
+        "name": "Page"
+      }
+    },
+    "sensor": {
+      "active_activity": {
+        "name": "Activité active ({room})"
+      },
+      "current_page": {
+        "name": "Page actuelle"
+      }
+    }
+  },
+  "services": {
+    "set_page": {
+      "description": "Fait passer le tableau de bord de la télécommande Astrion sur la page indiquée.",
+      "fields": {
+        "page": {
+          "description": "Nom de la page à afficher, tel que défini dans dashboard.json (insensible à la casse).",
+          "name": "Page"
+        }
+      },
+      "name": "Définir la page"
+    },
+    "start_activity": {
+      "description": "Démarre une activité Astrion par son id, dans la pièce à laquelle elle appartient.",
+      "fields": {
+        "activity_id": {
+          "description": "Id de l'activité à démarrer, tel que renvoyé par l'endpoint /activities de l'appareil astrion.",
+          "name": "ID de l'activité"
+        }
+      },
+      "name": "Démarrer une activité"
+    },
+    "stop_activity": {
+      "description": "Arrête l'activité actuellement active dans une pièce, sans en démarrer une autre. Pour une activité Harmony classique, seul le hub de cette activité reçoit l'ordre d'extinction.",
+      "fields": {
+        "room": {
+          "description": "Nom de la pièce à arrêter, tel que configuré dans dashboard.json.",
+          "name": "Pièce"
+        }
+      },
+      "name": "Arrêter une activité"
+    }
+  }
+}

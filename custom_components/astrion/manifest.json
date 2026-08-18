@@ -1,0 +1,12 @@
+{
+  "domain": "astrion",
+  "name": "Astrion Custom Dashboard",
+  "codeowners": ["@dckiller51"],
+  "config_flow": true,
+  "documentation": "https://github.com/dckiller51/ha-astrion-custom-dashboard",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/dckiller51/ha-astrion-custom-dashboard/issues",
+  "requirements": [],
+  "version": "2026.8.0"
+}

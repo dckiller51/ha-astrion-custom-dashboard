@@ -1,0 +1,21 @@
+set_page:
+  fields:
+    page:
+      required: true
+      example: "Media"
+      selector:
+        text:
+start_activity:
+  fields:
+    activity_id:
+      required: true
+      example: "watch_appletv"
+      selector:
+        text:
+stop_activity:
+  fields:
+    room:
+      required: true
+      example: "Salon"
+      selector:
+        text:
