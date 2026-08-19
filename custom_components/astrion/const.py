@@ -3,10 +3,10 @@
 from homeassistant.const import Platform
 
 DOMAIN = "astrion"
-PLATFORMS = [Platform.SELECT, Platform.SENSOR]
+PLATFORMS = [Platform.SELECT, Platform.SENSOR, Platform.UPDATE]
 
 NAME = "Astrion Custom Dashboard"
-VERSION = "2026.8.0"
+VERSION = "2026.8.1"
 ISSUE_URL = "https://github.com/dckiller51/ha-astrion-custom-dashboard/issues"
 
 STARTUP_MESSAGE = f"""
@@ -30,6 +30,18 @@ CONF_PAGE = "page"
 # push mechanism (no websocket) for this, so local_polling is the honest
 # iot_class — same reasoning as most local-HTTP integrations without SSE.
 UPDATE_INTERVAL_SECONDS = 10
+
+# How often we check GitHub for the latest astrion-custom-dashboard release.
+# Deliberately much slower than UPDATE_INTERVAL_SECONDS — this hits GitHub's
+# API (60 unauthenticated requests/hour/IP), not the local device, and a new
+# APK build is a rare event; there's nothing to gain from checking more than
+# a couple of times a day.
+UPDATE_CHECK_INTERVAL_HOURS = 12
+
+# The astrion-custom-dashboard (APK) repo — distinct from this integration's
+# own ha-astrion-custom-dashboard repo (see ISSUE_URL above).
+APK_REPO = "dckiller51/astrion-custom-dashboard"
+APK_RELEASES_API_URL = f"https://api.github.com/repos/{APK_REPO}/releases/latest"
 
 ATTR_PAGE = "page"
 ATTR_ROOM = "room"

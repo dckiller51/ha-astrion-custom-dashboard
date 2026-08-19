@@ -11,7 +11,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import AstrionActivity, AstrionApiError, AstrionClient
-from .const import DOMAIN, MANUFACTURER, MODEL, UPDATE_INTERVAL_SECONDS, VERSION
+from .const import DOMAIN, MANUFACTURER, MODEL, UPDATE_INTERVAL_SECONDS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,6 +24,7 @@ class AstrionData:
     current_page: str | None
     activities: list[AstrionActivity]
     active_by_room: dict[str, AstrionActivity | None]
+    installed_version: str
 
     @property
     def rooms(self) -> list[str]:
@@ -62,7 +63,10 @@ class AstrionCoordinator(DataUpdateCoordinator[AstrionData]):
             name=device_name,
             manufacturer=MANUFACTURER,
             model=MODEL,
-            sw_version=VERSION,
+            # No sw_version here — it's the *installed Astrion app's* own
+            # version, only known after the first successful /version
+            # fetch, not this integration's own VERSION constant. Set once
+            # in __init__.py right after async_config_entry_first_refresh().
         )
 
     async def _async_update_data(self) -> AstrionData:
@@ -71,6 +75,7 @@ class AstrionCoordinator(DataUpdateCoordinator[AstrionData]):
             current = await self.client.async_get_current_page()
             activities = await self.client.async_get_activities()
             active_by_room = await self.client.async_get_active_activities()
+            version = await self.client.async_get_version()
         except AstrionApiError as err:
             raise UpdateFailed(str(err)) from err
 
@@ -79,4 +84,5 @@ class AstrionCoordinator(DataUpdateCoordinator[AstrionData]):
             current_page=current.name if current else None,
             activities=activities,
             active_by_room=active_by_room,
+            installed_version=version.version,
         )

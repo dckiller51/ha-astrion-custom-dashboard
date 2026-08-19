@@ -20,6 +20,7 @@ from custom_components.astrion.api import (
     AstrionClient,
     AstrionPage,
     AstrionPageNotFound,
+    AstrionVersion,
 )
 
 
@@ -178,3 +179,14 @@ async def test_async_start_activity_unknown_id() -> None:
 
     with pytest.raises(AstrionActivityNotFound, match="nope"):
         await client.async_start_activity("nope")
+
+
+@pytest.mark.asyncio
+async def test_async_get_version() -> None:
+    """async_get_version parses /version into an AstrionVersion."""
+    session = _fake_session(200, {"version": "0.9.0", "versionCode": 9})
+    client = AstrionClient(session, "10.0.0.5")
+
+    version = await client.async_get_version()
+
+    assert version == AstrionVersion(version="0.9.0", version_code=9)

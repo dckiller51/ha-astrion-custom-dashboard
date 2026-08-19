@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "astrion"
-version = "2026.8.0"
+version = "2026.8.1"
 description = "Home Assistant custom integration to remotely control and automate an Astrion Custom Dashboard remote"
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -20,12 +20,12 @@ dependencies = ["homeassistant>=2026.8.2"]
 
 [project.optional-dependencies]
 dev = [
-    "mypy==2.3.0",
-    "pre-commit==4.6.1",
-    "pylint==4.0.6",
+    "mypy==2.3.1",
+    "pre-commit==4.6.2",
+    "pylint==4.0.7",
     "pytest-cov",
     "pytest-homeassistant-custom-component",
-    "ruff==0.16.1",
+    "ruff==0.16.3",
 ]
 
 [tool.setuptools.packages.find]

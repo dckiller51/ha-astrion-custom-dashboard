@@ -36,7 +36,7 @@ async def async_setup_entry(
     integrations like Sonos use for dynamically-discovered players, instead
     of a fixed set created once at startup.
     """
-    coordinator = entry.runtime_data
+    coordinator = entry.runtime_data.coordinator
     async_add_entities([AstrionCurrentPageSensor(coordinator)])
 
     known_rooms: set[str] = set()

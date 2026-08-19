@@ -34,6 +34,11 @@
       "current_page": {
         "name": "Page actuelle"
       }
+    },
+    "update": {
+      "app_update": {
+        "name": "Mise à jour de l'application"
+      }
     }
   },
   "services": {

@@ -1,8 +1,4 @@
-"""Select entities for Astrion.
-
-The Astrion Remote's current dashboard page, and which
-Activity is active in each room.
-"""
+"""Select entities: the Astrion Remote's current dashboard page, and which Activity is active in each room."""
 
 from __future__ import annotations
 
@@ -44,7 +40,7 @@ async def async_setup_entry(
     `_add_new_room_sensors` for why entities are added as rooms show up
     instead of all at once at startup.
     """
-    coordinator = entry.runtime_data
+    coordinator = entry.runtime_data.coordinator
     async_add_entities([AstrionPageSelect(coordinator)])
 
     known_rooms: set[str] = set()

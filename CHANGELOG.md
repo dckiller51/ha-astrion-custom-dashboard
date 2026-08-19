@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 
 <!--next-version-placeholder-->
 
+## 2026.8.1
+
+### ✨ New features
+
+- Added an `update.app_update` entity reporting the installed Astrion app
+  version (from the device's new `GET /version` route) against the latest
+  `astrion-custom-dashboard` release published on GitHub, with a link to
+  the release page. Informational only — no remote install capability,
+  since there's no way to push an APK to the device.
+- Installed-version polling rides along on the existing fast device
+  coordinator (cheap, local); the GitHub check runs on its own coordinator
+  every 12 hours instead, to stay well under GitHub's unauthenticated rate
+  limit and because a new APK build is a rare event. GitHub being briefly
+  unreachable never fails the integration's setup or marks the entity
+  unavailable — it just has no "latest version" to compare against until
+  the next successful check.
+
+### 🔧 Fixes
+
+- `DeviceInfo.sw_version` was showing this _integration's_ own version
+  (e.g. `2026.8.1`) instead of the Astrion app actually running on the
+  device — now set from the real `/version` response once it's known,
+  right after the first successful refresh.
+
+### 🧱 Internal
+
+- `ConfigEntry.runtime_data` is now an `AstrionRuntimeData` dataclass
+  bundling both coordinators (`coordinator` for the device,
+  `update_coordinator` for the GitHub check) instead of a single
+  `AstrionCoordinator` — every existing `entry.runtime_data` access
+  (`sensor.py`, `select.py`, the `astrion.*` service handlers) updated
+  accordingly.
+
 ## 2026.8.0
 
 ### ✨ New features
