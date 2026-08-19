@@ -18,7 +18,7 @@ from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.astrion.api import AstrionApiError, AstrionPage
+from custom_components.astrion.api import AstrionApiError, AstrionPage, AstrionVersion
 from custom_components.astrion.const import DOMAIN
 
 pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
@@ -33,7 +33,9 @@ def _mock_reachable_device(pages: list[AstrionPage]) -> Iterator[None]:
     Covers both the config flow's own validation call and the coordinator's
     first refresh, which Home Assistant kicks off in the background as soon
     as the entry is created — without this, that refresh falls through to a
-    real (blocked-by-tests) socket call.
+    real (blocked-by-tests) socket call. Also mocks the update coordinator's
+    GitHub check for the same reason — `async_setup_entry` runs it right
+    alongside the device coordinator's own first refresh.
     """
     with (
         patch(
@@ -51,6 +53,14 @@ def _mock_reachable_device(pages: list[AstrionPage]) -> Iterator[None]:
         patch(
             "custom_components.astrion.api.AstrionClient.async_get_active_activities",
             AsyncMock(return_value={}),
+        ),
+        patch(
+            "custom_components.astrion.api.AstrionClient.async_get_version",
+            AsyncMock(return_value=AstrionVersion(version="0.9.0", version_code=9)),
+        ),
+        patch(
+            "custom_components.astrion.update.AstrionUpdateCoordinator._async_update_data",
+            AsyncMock(return_value=None),
         ),
     ):
         yield

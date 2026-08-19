@@ -39,6 +39,14 @@ class AstrionPage:
 
 
 @dataclass
+class AstrionVersion:
+    """The installed app's own version, as reported by /version."""
+
+    version: str
+    version_code: int
+
+
+@dataclass
 class AstrionActivity:
     """One trackable Activity, as reported by /activities.
 
@@ -70,6 +78,13 @@ class AstrionClient:
         if not isinstance(data, list):
             raise AstrionApiError(f"Unexpected /pages response: {data!r}")
         return [AstrionPage(index=item["index"], name=item["name"]) for item in data]
+
+    async def async_get_version(self) -> AstrionVersion:
+        """Return the installed app's own version."""
+        data = await self._request("GET", "/version")
+        if not isinstance(data, dict):
+            raise AstrionApiError(f"Unexpected /version response: {data!r}")
+        return AstrionVersion(version=data["version"], version_code=data["versionCode"])
 
     async def async_get_current_page(self) -> AstrionPage | None:
         """Return the page currently visible on the device, if known."""

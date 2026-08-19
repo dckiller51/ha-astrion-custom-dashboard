@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -10,6 +12,7 @@ from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import (
@@ -31,9 +34,31 @@ from .const import (
 )
 from .coordinator import AstrionCoordinator
 
+# Only for static type checking (Pylance, mypy) — a real module-level import
+# would circle back, since update.py itself does `from . import
+# AstrionConfigEntry`. async_setup_entry() below does the real import,
+# locally, once this module is already fully initialized.
+if TYPE_CHECKING:
+    from .update import AstrionUpdateCoordinator
+
 _LOGGER = logging.getLogger(__name__)
 
-type AstrionConfigEntry = ConfigEntry[AstrionCoordinator]
+
+@dataclass
+class AstrionRuntimeData:
+    """Everything one config entry needs at runtime.
+
+    Two coordinators, not one — `coordinator` polls the device itself
+    (fast, local), `update_coordinator` checks GitHub for the latest APK
+    release (slow, remote, rate-limited). See update.py's own doc comment
+    for why they're kept separate rather than one coordinator doing both.
+    """
+
+    coordinator: AstrionCoordinator
+    update_coordinator: AstrionUpdateCoordinator
+
+
+type AstrionConfigEntry = ConfigEntry[AstrionRuntimeData]
 
 SET_PAGE_SCHEMA = vol.Schema({vol.Required(ATTR_PAGE): cv.string})
 START_ACTIVITY_SCHEMA = vol.Schema({vol.Required(ATTR_ACTIVITY_ID): cv.string})
@@ -42,6 +67,12 @@ STOP_ACTIVITY_SCHEMA = vol.Schema({vol.Required(ATTR_ROOM): cv.string})
 
 async def async_setup_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> bool:
     """Set up Astrion Custom Dashboard from a config entry."""
+    # Imported here, not at module level, to avoid a circular import
+    # (update.py imports AstrionConfigEntry from this module).
+    from .update import (  # pylint: disable=import-outside-toplevel
+        AstrionUpdateCoordinator,
+    )
+
     if DOMAIN not in hass.data:
         # Logged once per HA run, not once per configured device — matches
         # the usual custom-component-blueprint pattern of a single banner
@@ -57,8 +88,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> b
 
     await coordinator.async_config_entry_first_refresh()
 
-    entry.runtime_data = coordinator
+    entry.runtime_data = AstrionRuntimeData(
+        coordinator=coordinator,
+        update_coordinator=AstrionUpdateCoordinator(hass),
+    )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # DeviceInfo.sw_version is the installed Astrion app's own version,
+    # only known now that the first /version fetch succeeded — set once
+    # here (after the entities above have registered the device via their
+    # own device_info) rather than kept live on every coordinator refresh,
+    # matching how most integrations only reflect firmware version changes
+    # after a reload rather than wiring up a listener for something that
+    # changes about as often as the user updates the APK.
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get_device(
+        identifiers={(DOMAIN, coordinator.unique_id)}
+    )
+    if device is not None:
+        device_registry.async_update_device(
+            device.id, sw_version=coordinator.data.installed_version
+        )
 
     _async_register_services(hass)
 
@@ -80,7 +130,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
             # select.select_option on every astrion select entity, but lets an
             # automation target by page name without knowing the entity_id.
             for entry in hass.config_entries.async_entries(DOMAIN):
-                coordinator: AstrionCoordinator = entry.runtime_data
+                coordinator = entry.runtime_data.coordinator
                 try:
                     await coordinator.client.async_set_page(page)
                 except AstrionPageNotFound as err:
@@ -103,7 +153,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
             # for devices that don't have an Activity with this id, since
             # activity ids are only unique within one device's dashboard.json.
             for entry in hass.config_entries.async_entries(DOMAIN):
-                coordinator: AstrionCoordinator = entry.runtime_data
+                coordinator = entry.runtime_data.coordinator
                 if not any(a.id == activity_id for a in coordinator.data.activities):
                     continue
                 try:
@@ -130,7 +180,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
             # Same fan-out again, skipping devices with no such room —
             # room names are only unique within one device's dashboard.json.
             for entry in hass.config_entries.async_entries(DOMAIN):
-                coordinator: AstrionCoordinator = entry.runtime_data
+                coordinator = entry.runtime_data.coordinator
                 if room not in coordinator.data.rooms:
                     continue
                 try:
