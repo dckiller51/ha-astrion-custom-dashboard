@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import AstrionActivity, AstrionApiError, AstrionClient
+from .api import AstrionActivity, AstrionApiError, AstrionBattery, AstrionClient
 from .const import DOMAIN, MANUFACTURER, MODEL, UPDATE_INTERVAL_SECONDS
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ class AstrionData:
     activities: list[AstrionActivity]
     active_by_room: dict[str, AstrionActivity | None]
     installed_version: str
+    battery: AstrionBattery
 
     @property
     def rooms(self) -> list[str]:
@@ -76,6 +77,7 @@ class AstrionCoordinator(DataUpdateCoordinator[AstrionData]):
             activities = await self.client.async_get_activities()
             active_by_room = await self.client.async_get_active_activities()
             version = await self.client.async_get_version()
+            battery = await self.client.async_get_battery()
         except AstrionApiError as err:
             raise UpdateFailed(str(err)) from err
 
@@ -85,4 +87,5 @@ class AstrionCoordinator(DataUpdateCoordinator[AstrionData]):
             activities=activities,
             active_by_room=active_by_room,
             installed_version=version.version,
+            battery=battery,
         )

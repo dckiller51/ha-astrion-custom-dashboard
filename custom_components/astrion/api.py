@@ -47,6 +47,19 @@ class AstrionVersion:
 
 
 @dataclass
+class AstrionBattery:
+    """Battery status of the tablet running Astrion, as reported by /battery.
+
+    `level` is None when the OS couldn't report a usable reading (the
+    device's own battery API returned an unexpected scale) — distinct
+    from the whole poll failing, which raises AstrionApiError instead.
+    """
+
+    level: int | None
+    charging: bool
+
+
+@dataclass
 class AstrionActivity:
     """One trackable Activity, as reported by /activities.
 
@@ -85,6 +98,15 @@ class AstrionClient:
         if not isinstance(data, dict):
             raise AstrionApiError(f"Unexpected /version response: {data!r}")
         return AstrionVersion(version=data["version"], version_code=data["versionCode"])
+
+    async def async_get_battery(self) -> AstrionBattery:
+        """Return the tablet's own battery level and charging state."""
+        data = await self._request("GET", "/battery")
+        if not isinstance(data, dict):
+            raise AstrionApiError(f"Unexpected /battery response: {data!r}")
+        return AstrionBattery(
+            level=data.get("level"), charging=bool(data.get("charging", False))
+        )
 
     async def async_get_current_page(self) -> AstrionPage | None:
         """Return the page currently visible on the device, if known."""

@@ -19,6 +19,14 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "charging": {
+        "name": "En charge"
+      },
+      "connectivity": {
+        "name": "Connectivité"
+      }
+    },
     "select": {
       "activity": {
         "name": "Activité ({room})"
@@ -30,6 +38,9 @@
     "sensor": {
       "active_activity": {
         "name": "Activité active ({room})"
+      },
+      "battery_level": {
+        "name": "Niveau de batterie"
       },
       "current_page": {
         "name": "Page actuelle"
