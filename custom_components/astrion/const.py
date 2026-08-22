@@ -3,10 +3,10 @@
 from homeassistant.const import Platform
 
 DOMAIN = "astrion"
-PLATFORMS = [Platform.SELECT, Platform.SENSOR, Platform.UPDATE]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.SELECT, Platform.SENSOR, Platform.UPDATE]
 
 NAME = "Astrion Custom Dashboard"
-VERSION = "2026.8.1"
+VERSION = "2026.8.2"
 ISSUE_URL = "https://github.com/dckiller51/ha-astrion-custom-dashboard/issues"
 
 STARTUP_MESSAGE = f"""

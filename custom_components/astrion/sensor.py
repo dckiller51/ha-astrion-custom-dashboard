@@ -9,7 +9,12 @@ a real (if harmless) side effect. This sensor is purely observational.
 
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
+from homeassistant.const import PERCENTAGE, EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -37,7 +42,9 @@ async def async_setup_entry(
     of a fixed set created once at startup.
     """
     coordinator = entry.runtime_data.coordinator
-    async_add_entities([AstrionCurrentPageSensor(coordinator)])
+    async_add_entities(
+        [AstrionCurrentPageSensor(coordinator), AstrionBatterySensor(coordinator)]
+    )
 
     known_rooms: set[str] = set()
 
@@ -73,6 +80,34 @@ class AstrionCurrentPageSensor(CoordinatorEntity[AstrionCoordinator], SensorEnti
     def native_value(self) -> str | None:
         """Return the page currently visible on the device."""
         return self.coordinator.data.current_page
+
+
+class AstrionBatterySensor(CoordinatorEntity[AstrionCoordinator], SensorEntity):
+    """Battery level of the tablet running Astrion, read-only.
+
+    `None` (unknown) when the device's own battery API couldn't report a
+    usable reading — distinct from the entity going unavailable, which
+    only happens if the coordinator itself fails to reach the device. See
+    AstrionBattery's own docstring in api.py.
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "battery_level"
+    _attr_device_class = SensorDeviceClass.BATTERY
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: AstrionCoordinator) -> None:
+        """Initialize the battery sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.unique_id}-battery-level"
+        self._attr_device_info = coordinator.device_info
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the tablet's current battery level, 0-100."""
+        return self.coordinator.data.battery.level
 
 
 class AstrionActiveActivitySensor(CoordinatorEntity[AstrionCoordinator], SensorEntity):

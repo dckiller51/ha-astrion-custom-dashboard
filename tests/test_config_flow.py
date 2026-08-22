@@ -59,6 +59,10 @@ def _mock_reachable_device(pages: list[AstrionPage]) -> Iterator[None]:
             AsyncMock(return_value=AstrionVersion(version="0.9.0", version_code=9)),
         ),
         patch(
+            "custom_components.astrion.api.AstrionClient.async_get_battery",
+            AsyncMock(return_value={"level": 100}),
+        ),
+        patch(
             "custom_components.astrion.update.AstrionUpdateCoordinator._async_update_data",
             AsyncMock(return_value=None),
         ),
