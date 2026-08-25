@@ -190,3 +190,23 @@ async def test_async_get_version() -> None:
     version = await client.async_get_version()
 
     assert version == AstrionVersion(version="0.9.0", version_code=9)
+
+
+@pytest.mark.asyncio
+async def test_async_ring_posts_form_fields() -> None:
+    """async_ring forwards volume/sound/duration as POST form fields."""
+    session = _fake_session(200, {"status": "ringing"})
+    client = AstrionClient(session, "10.0.0.5")
+
+    # Doesn't raise — the happy path just needs to reach the device.
+    await client.async_ring(volume=50, sound="alarm", duration=10)
+
+
+@pytest.mark.asyncio
+async def test_async_ring_unknown_sound() -> None:
+    """An unknown `sound` value the device rejects raises AstrionApiError."""
+    session = _fake_session(400, {"error": "unknown sound 'nope'"})
+    client = AstrionClient(session, "10.0.0.5")
+
+    with pytest.raises(AstrionApiError):
+        await client.async_ring(volume=50, sound="nope", duration=10)

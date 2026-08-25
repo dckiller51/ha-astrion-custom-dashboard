@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 <!--next-version-placeholder-->
 
+## 2026.8.3
+
+### ✨ New features
+
+- **"Find my remote."** New `astrion.ring` service plays a sound on the device's own speaker for a few seconds so a misplaced remote can be located by ear. Fields: `volume` (1-100%, default 80), `sound` (`ringtone` | `alarm` | `notification`, default `ringtone`), `duration` (seconds, 1-60, default 15), and an optional `device_id` to ring just one Astrion device instead of every configured one (the default, unchanged, when omitted).
+- New `button.find_my_remote` entity — one-click ring at the default volume/sound/duration, no service call needed. Complements the service rather than replacing it: reaching for a specific volume/sound/duration, or targeting one device out of several, still means calling `astrion.ring`.
+
+### 🧱 Internal
+
+- `api.py`: added `AstrionClient.async_ring()`, posting to the device's new `/ring` endpoint.
+- `const.py`: added `Platform.BUTTON`, the `ring`-related `ATTR_*`/`SERVICE_RING`/`SOUND_*` constants, and `DEFAULT_RING_VOLUME`/`DEFAULT_RING_DURATION`.
+- `__init__.py`: added `RING_SCHEMA` and the `astrion.ring` service handler; added `_async_target_entries()`, a small helper resolving an optional `device_id` to the config entries it should apply to, used by `ring` and reusable if the other services (`set_page`, `start_activity`, `stop_activity`) ever want the same per-device targeting.
+- New `button.py` (`AstrionRingButton`), following the same `CoordinatorEntity` + `has_entity_name` pattern as `select.py`.
+- Added corresponding English and French translations (`strings.json`, `translations/en.json`, `translations/fr.json`) for the service and the new button entity.
+- `tests/test_api.py`: added coverage for `async_ring`, including the device rejecting an unknown `sound`.
+- New `tests/test_button.py`: covers the button entity being registered, pressing it calling `async_ring` with exactly the documented defaults, and an unreachable device surfacing as a `HomeAssistantError`.
+
+### 📋 Requirements
+
+Requires an Astrion Custom Dashboard v1.0.4 https://github.com/dckiller51/astrion-custom-dashboard/releases (adds the device's `/ring` and `/ring/stop` endpoints).
+
 ## 2026.8.2
 
 ### ✨ New features

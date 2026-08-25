@@ -27,6 +27,11 @@
         "name": "Connectivity"
       }
     },
+    "button": {
+      "ring": {
+        "name": "Find my remote"
+      }
+    },
     "select": {
       "activity": {
         "name": "Activity ({room})"
@@ -53,6 +58,28 @@
     }
   },
   "services": {
+    "ring": {
+      "description": "\"Find my remote\": plays a sound on the Astrion device's own speaker for a few seconds, at a chosen volume, so you can locate it by ear.",
+      "fields": {
+        "device_id": {
+          "description": "Which Astrion device to ring. Leave empty to ring every configured device.",
+          "name": "Device"
+        },
+        "duration": {
+          "description": "How long to ring, in seconds (1-60). Defaults to 15.",
+          "name": "Duration"
+        },
+        "sound": {
+          "description": "Which of the device's own default sounds to play. Defaults to \"ringtone\".",
+          "name": "Sound"
+        },
+        "volume": {
+          "description": "Volume to ring at, as a percentage of the device's alarm volume (1-100). Defaults to 80.",
+          "name": "Volume"
+        }
+      },
+      "name": "Ring"
+    },
     "set_page": {
       "description": "Jumps the Astrion remote's dashboard to the given page.",
       "fields": {

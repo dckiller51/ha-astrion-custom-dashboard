@@ -27,6 +27,11 @@
         "name": "Connectivité"
       }
     },
+    "button": {
+      "ring": {
+        "name": "Trouver ma télécommande"
+      }
+    },
     "select": {
       "activity": {
         "name": "Activité ({room})"
@@ -53,6 +58,28 @@
     }
   },
   "services": {
+    "ring": {
+      "description": "« Où est ma télécommande » : fait jouer un son sur le haut-parleur de l'appareil Astrion pendant quelques secondes, au volume choisi, pour le repérer à l'oreille.",
+      "fields": {
+        "device_id": {
+          "description": "Quel appareil Astrion faire sonner. Laisser vide pour faire sonner tous les appareils configurés.",
+          "name": "Appareil"
+        },
+        "duration": {
+          "description": "Durée de la sonnerie, en secondes (1-60). 15 par défaut.",
+          "name": "Durée"
+        },
+        "sound": {
+          "description": "Quel son par défaut de l'appareil jouer. « ringtone » (sonnerie) par défaut.",
+          "name": "Son"
+        },
+        "volume": {
+          "description": "Volume de la sonnerie, en pourcentage du volume d'alarme de l'appareil (1-100). 80 par défaut.",
+          "name": "Volume"
+        }
+      },
+      "name": "Faire sonner"
+    },
     "set_page": {
       "description": "Fait passer le tableau de bord de la télécommande Astrion sur la page indiquée.",
       "fields": {
