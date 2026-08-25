@@ -23,13 +23,22 @@ from .api import (
 )
 from .const import (
     ATTR_ACTIVITY_ID,
+    ATTR_DEVICE_ID,
+    ATTR_DURATION,
     ATTR_PAGE,
     ATTR_ROOM,
+    ATTR_SOUND,
+    ATTR_VOLUME,
+    DEFAULT_RING_DURATION,
+    DEFAULT_RING_VOLUME,
     DOMAIN,
     PLATFORMS,
+    RING_SOUNDS,
+    SERVICE_RING,
     SERVICE_SET_PAGE,
     SERVICE_START_ACTIVITY,
     SERVICE_STOP_ACTIVITY,
+    SOUND_RINGTONE,
     STARTUP_MESSAGE,
 )
 from .coordinator import AstrionCoordinator
@@ -63,6 +72,23 @@ type AstrionConfigEntry = ConfigEntry[AstrionRuntimeData]
 SET_PAGE_SCHEMA = vol.Schema({vol.Required(ATTR_PAGE): cv.string})
 START_ACTIVITY_SCHEMA = vol.Schema({vol.Required(ATTR_ACTIVITY_ID): cv.string})
 STOP_ACTIVITY_SCHEMA = vol.Schema({vol.Required(ATTR_ROOM): cv.string})
+RING_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_VOLUME, default=DEFAULT_RING_VOLUME): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=100)
+        ),
+        vol.Optional(ATTR_SOUND, default=SOUND_RINGTONE): vol.In(RING_SOUNDS),
+        vol.Optional(ATTR_DURATION, default=DEFAULT_RING_DURATION): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=60)
+        ),
+        # Omitted = every configured Astrion device, same as before this was
+        # added. Given as its own field rather than relying on ServiceCall's
+        # built-in `target:` handling, since that's only wired up
+        # automatically for entity-domain services — this is a domain-level
+        # service with no entity of its own to target.
+        vol.Optional(ATTR_DEVICE_ID): cv.string,
+    }
+)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> bool:
@@ -118,6 +144,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> b
 async def async_unload_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+def _async_target_entries(
+    hass: HomeAssistant, device_id: str | None
+) -> list[AstrionConfigEntry]:
+    """Resolve a service call's optional `device_id` to config entries.
+
+    `device_id` omitted -> every configured Astrion device (the fan-out the
+    other services here always use). `device_id` given -> just the entry
+    that device belongs to, so `ring` can target one specific remote in a
+    multi-device home instead of ringing all of them at once.
+    """
+    if device_id is None:
+        return list(hass.config_entries.async_entries(DOMAIN))
+
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get(device_id)
+    if device is None:
+        raise HomeAssistantError(f"Unknown device_id: {device_id}")
+
+    entries = [
+        entry
+        for entry in hass.config_entries.async_entries(DOMAIN)
+        if entry.entry_id in device.config_entries
+    ]
+    if not entries:
+        raise HomeAssistantError(f"Device {device_id} is not an Astrion device")
+    return entries
 
 
 def _async_register_services(hass: HomeAssistant) -> None:
@@ -196,4 +250,26 @@ def _async_register_services(hass: HomeAssistant) -> None:
             SERVICE_STOP_ACTIVITY,
             _async_stop_activity,
             schema=STOP_ACTIVITY_SCHEMA,
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_RING):
+
+        async def _async_ring(call: ServiceCall) -> None:
+            volume = call.data[ATTR_VOLUME]
+            sound = call.data[ATTR_SOUND]
+            duration = call.data[ATTR_DURATION]
+            device_id = call.data.get(ATTR_DEVICE_ID)
+            # Rings every configured device unless `device_id` narrows it to
+            # one — see _async_target_entries above.
+            for entry in _async_target_entries(hass, device_id):
+                coordinator = entry.runtime_data.coordinator
+                try:
+                    await coordinator.client.async_ring(volume, sound, duration)
+                except AstrionApiError as err:
+                    raise HomeAssistantError(
+                        f"Astrion device for entry {entry.title} unreachable: {err}"
+                    ) from err
+
+        hass.services.async_register(
+            DOMAIN, SERVICE_RING, _async_ring, schema=RING_SCHEMA
         )

@@ -19,3 +19,40 @@ stop_activity:
       example: "Salon"
       selector:
         text:
+ring:
+  fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: astrion
+    volume:
+      required: false
+      example: 80
+      default: 80
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: "%"
+          mode: slider
+    sound:
+      required: false
+      example: "ringtone"
+      default: "ringtone"
+      selector:
+        select:
+          options:
+            - "ringtone"
+            - "alarm"
+            - "notification"
+    duration:
+      required: false
+      example: 15
+      default: 15
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: "s"
+          mode: box

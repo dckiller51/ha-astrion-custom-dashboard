@@ -167,6 +167,23 @@ class AstrionClient:
         """
         await self._request("POST", "/activities/stop", data={"room": room})
 
+    async def async_ring(self, volume: int, sound: str, duration: int) -> None:
+        """'Find my remote': ring the device's own speaker to help locate it.
+
+        `sound` is one of "ringtone", "alarm", "notification" (the device's
+        own default for that category); `volume` is 1-100 (percent of the
+        alarm stream's max); `duration` is how many seconds it plays before
+        stopping on its own, 1-60. Validation of these ranges/choices is left
+        to the service schema in __init__.py, same as the other services —
+        this just forwards whatever it's given.
+        ...
+        """
+        await self._request(
+            "POST",
+            "/ring",
+            data={"volume": str(volume), "sound": sound, "duration": str(duration)},
+        )
+
     async def _request(
         self, method: str, path: str, data: dict[str, Any] | None = None
     ) -> Any:

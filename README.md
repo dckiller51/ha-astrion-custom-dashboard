@@ -9,8 +9,8 @@
 
 Home Assistant custom integration to remotely control and automate your remote.
 
-> **Prerequisite:** This integration requires **Astrion Custom Dashboard v0.9.0 or higher** to be installed on your remote device.
-> Your Astrion build must expose the `/pages`, `/current-page`, `/set-page`, `/activities`, `/activities/active`, `/activities/start`, and `/activities/stop` routes on its local config server (port 8080 by default).
+> **Prerequisite:** This integration requires **Astrion Custom Dashboard v1.0.4 or higher** to be installed on your remote device.
+> Your Astrion build must expose the `/pages`, `/current-page`, `/set-page`, `/activities`, `/activities/active`, `/activities/start`, `/activities/stop`, `/ring`, and `/ring/stop` routes on its local config server (port 8080 by default).
 
 _(Click the banner below to see the project)_
 [![Astrion Custom Dashboard](https://github.com/dckiller51/astrion-custom-dashboard/blob/main/docs/banner_astrion_custom_dashboard.png)](https://github.com/dckiller51/astrion-custom-dashboard)
@@ -46,6 +46,11 @@ enter the IP address (and port, default `8080`) of your Astrion device.
   active — for a Harmony-backed Activity this sends PowerOff to _that
   Activity's own hub only_, not a blanket "turn everything off", so other
   rooms sharing the same hub are left untouched.
+- `button.find_my_remote` — one per configured device. "Where's my remote?":
+  pressing it rings the device's own speaker for a few seconds at a fixed
+  default volume/sound/duration. For anything more specific — a different
+  volume, sound, duration, or targeting one device in a multi-device home
+  — use the `astrion.ring` service below instead.
 - `astrion.set_page` service — a name-based shortcut:
 
   ```yaml
@@ -71,6 +76,18 @@ enter the IP address (and port, default `8080`) of your Astrion device.
   service: astrion.stop_activity
   data:
     room: "Salon"
+  ```
+
+- `astrion.ring` service — "find my remote" with control over how: plays a
+  sound on the device's own speaker so you can locate it by ear.
+
+  ```yaml
+  service: astrion.ring
+  data:
+    volume: 90 # 1-100%, default 80
+    sound: "alarm" # "ringtone" | "alarm" | "notification", default "ringtone"
+    duration: 20 # seconds, 1-60, default 15
+    device_id: abc123def456 # optional — omit to ring every configured device
   ```
 
 Both `sensor.active_activity_<room>` and `select.activity_<room>` are added

@@ -3,7 +3,13 @@
 from homeassistant.const import Platform
 
 DOMAIN = "astrion"
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.SELECT, Platform.SENSOR, Platform.UPDATE]
+PLATFORMS = [
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.SELECT,
+    Platform.SENSOR,
+    Platform.UPDATE,
+]
 
 NAME = "Astrion Custom Dashboard"
 VERSION = "2026.8.2"
@@ -46,10 +52,27 @@ APK_RELEASES_API_URL = f"https://api.github.com/repos/{APK_REPO}/releases/latest
 ATTR_PAGE = "page"
 ATTR_ROOM = "room"
 ATTR_ACTIVITY_ID = "activity_id"
+ATTR_VOLUME = "volume"
+ATTR_SOUND = "sound"
+ATTR_DURATION = "duration"
+ATTR_DEVICE_ID = "device_id"
 
 SERVICE_SET_PAGE = "set_page"
 SERVICE_START_ACTIVITY = "start_activity"
 SERVICE_STOP_ACTIVITY = "stop_activity"
+SERVICE_RING = "ring"
+
+# The three sound categories Astrion's /ring endpoint understands — its own
+# ringtone/alarm/notification default, chosen by RingtoneManager on-device.
+# Not a free-text ringtone picker: keeps the service schema and the device's
+# HTTP contract both simple, matching how little Astrion itself exposes.
+SOUND_RINGTONE = "ringtone"
+SOUND_ALARM = "alarm"
+SOUND_NOTIFICATION = "notification"
+RING_SOUNDS = [SOUND_RINGTONE, SOUND_ALARM, SOUND_NOTIFICATION]
+
+DEFAULT_RING_VOLUME = 80
+DEFAULT_RING_DURATION = 15
 
 # select.activity_<room>'s "nothing running" option. A literal sentinel
 # rather than a per-room computed value, same spirit as select.page having
