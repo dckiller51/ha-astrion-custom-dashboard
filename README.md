@@ -1,4 +1,6 @@
-# Astrion Custom Dashboard
+<!-- markdownlint-disable-next-line MD033 -->
+
+# <img src="custom_components/astrion/brand/icon@2x.png" width="48" align="center" alt="Astrion Custom Icon"> Astrion Custom Dashboard
 
 [![GH-release](https://img.shields.io/github/v/release/dckiller51/ha-astrion-custom-dashboard.svg?style=flat-square)](https://github.com/dckiller51/ha-astrion-custom-dashboard/releases)
 [![GH-downloads](https://img.shields.io/github/downloads/dckiller51/ha-astrion-custom-dashboard/total?style=flat-square)](https://github.com/dckiller51/ha-astrion-custom-dashboard/releases)
