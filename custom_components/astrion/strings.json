@@ -57,6 +57,17 @@
       }
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "regenerate": "Generate a new webhook id"
+        },
+        "description": "Webhook id: `{webhook_id}`\nFull URL: `{webhook_url}`\n\nPaste this into Astrion's web configurator to enable instant push. If no id is shown above, check the box below to create one. You can also check it later to roll over to a new id (e.g. if it leaked) — either way, update Astrion's configurator with the id shown here afterwards.",
+        "title": "Astrion push webhook"
+      }
+    }
+  },
   "services": {
     "ring": {
       "description": "\"Find my remote\": plays a sound on the Astrion device's own speaker for a few seconds, at a chosen volume, so you can locate it by ear.",

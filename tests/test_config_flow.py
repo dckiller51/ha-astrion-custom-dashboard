@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant import config_entries
-from homeassistant.const import CONF_HOST, CONF_PORT
+from homeassistant.const import CONF_HOST, CONF_PORT, CONF_WEBHOOK_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
@@ -86,7 +86,12 @@ async def test_user_flow_success(hass: HomeAssistant) -> None:
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Astrion Custom Dashboard"
-    assert result["data"] == VALID_INPUT
+    # Not a straight `== VALID_INPUT`: a random webhook id (for Astrion's
+    # optional instant-push feature, see __init__.py's _make_webhook_handler)
+    # is generated and stored alongside host/port at creation time.
+    assert result["data"][CONF_HOST] == VALID_INPUT[CONF_HOST]
+    assert result["data"][CONF_PORT] == VALID_INPUT[CONF_PORT]
+    assert result["data"][CONF_WEBHOOK_ID]
 
 
 async def test_user_flow_cannot_connect(hass: HomeAssistant) -> None:
