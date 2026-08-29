@@ -57,6 +57,17 @@
       }
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "regenerate": "Générer un nouvel identifiant webhook"
+        },
+        "description": "Identifiant webhook : `{webhook_id}`\nURL complète : `{webhook_url}`\n\nCollez ceci dans le configurateur web d'Astrion pour activer le push instantané. Si aucun identifiant n'est affiché ci-dessus, cochez la case ci-dessous pour en créer un. Vous pouvez aussi cocher plus tard pour en générer un nouveau (par ex. s'il a fuité) — dans les deux cas, mettez à jour le configurateur d'Astrion avec celui affiché ici ensuite.",
+        "title": "Webhook push Astrion"
+      }
+    }
+  },
   "services": {
     "ring": {
       "description": "« Où est ma télécommande » : fait jouer un son sur le haut-parleur de l'appareil Astrion pendant quelques secondes, au volume choisi, pour le repérer à l'oreille.",

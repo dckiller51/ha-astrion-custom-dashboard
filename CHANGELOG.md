@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 <!--next-version-placeholder-->
 
+## 2026.8.4
+
+### ✨ New features
+
+- **Instant push instead of polling.** New optional webhook — generated automatically at setup, viewable/regeneratable any time from this entry's "Configure" — that the paired Astrion Custom Dashboard app (1.0.7+) POSTs to the moment the current page or an Activity changes, instead of this integration only finding out on its next poll. `sensor.active_activity_<room>`/`select.activity_<room>` update immediately when this is set up on the Astrion side; polling stays on regardless as the reliable fallback (`iot_class` is unchanged — this is additive, not a replacement).
+
+### 🧱 Internal
+
+- `__init__.py`: registers/unregisters the webhook per config entry (`webhook.async_register`/`async_unregister`), bound via closure over that entry's own `AstrionCoordinator` so there's no id → entry lookup at request time. `_apply_page_push`/`_apply_activity_push` translate a push into `coordinator.async_set_updated_data(...)`; an activity push prefers the already-known `AstrionActivity` (by id, from the last poll) to keep its icon, falling back to a minimal one built from the push itself for an id the last poll doesn't know about yet.
+- `config_flow.py`: `CONF_WEBHOOK_ID` generated (`webhook.async_generate_id()`) and stored at entry creation — single-step flow unchanged, the id isn't shown until "Configure" so `async_configure()` still returns `CREATE_ENTRY` in one call. New `AstrionOptionsFlow` (`async_get_options_flow`) shows the current webhook id/URL and offers a "regenerate" checkbox, which updates the entry and triggers a reload (new `_async_reload_entry` update-listener) to re-register under the new id.
+- Added English and French translations (`strings.json`, `translations/en.json`, `translations/fr.json`) for the new `options.step.init` screen.
+- `tests/test_config_flow.py`: `test_user_flow_success` now checks `CONF_HOST`/`CONF_PORT` individually plus that a `CONF_WEBHOOK_ID` was generated, instead of an exact `== VALID_INPUT` match that a random id can no longer satisfy.
+
+### 📋 Requirements
+
+Push is opt-in and additive: leave the webhook field blank in Astrion's web configurator to keep 2026.8.3's polling-only behavior unchanged. To use it, requires Astrion Custom Dashboard v1.0.7 https://github.com/dckiller51/astrion-custom-dashboard/releases (adds the device-side `ha_webhook_id` setting and the pushes themselves).
+
 ## 2026.8.3
 
 ### ✨ New features
