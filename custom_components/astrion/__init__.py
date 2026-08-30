@@ -74,9 +74,18 @@ class AstrionRuntimeData:
 
 type AstrionConfigEntry = ConfigEntry[AstrionRuntimeData]
 
-SET_PAGE_SCHEMA = vol.Schema({vol.Required(ATTR_PAGE): cv.string})
-START_ACTIVITY_SCHEMA = vol.Schema({vol.Required(ATTR_ACTIVITY_ID): cv.string})
-STOP_ACTIVITY_SCHEMA = vol.Schema({vol.Required(ATTR_ROOM): cv.string})
+SET_PAGE_SCHEMA = vol.Schema(
+    {vol.Required(ATTR_PAGE): cv.string, vol.Optional(ATTR_DEVICE_ID): cv.string}
+)
+START_ACTIVITY_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ACTIVITY_ID): cv.string,
+        vol.Optional(ATTR_DEVICE_ID): cv.string,
+    }
+)
+STOP_ACTIVITY_SCHEMA = vol.Schema(
+    {vol.Required(ATTR_ROOM): cv.string, vol.Optional(ATTR_DEVICE_ID): cv.string}
+)
 RING_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_VOLUME, default=DEFAULT_RING_VOLUME): vol.All(
@@ -141,6 +150,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> b
             _make_webhook_handler(coordinator),
             allowed_methods=["POST"],
         )
+        coordinator.has_push_webhook = True
         _LOGGER.debug(
             "Astrion webhook registered: %s (all registered ids now: %s)",
             webhook_id,
@@ -331,9 +341,11 @@ async def _async_set_page(hass: HomeAssistant, call: ServiceCall) -> None:
     Applies to every configured Astrion device — mirrors calling
     select.select_option on every astrion select entity, but lets an
     automation target by page name without knowing the entity_id.
+    `device_id` narrows it to one device, same as `ring`.
     """
     page = call.data[ATTR_PAGE]
-    for entry in hass.config_entries.async_entries(DOMAIN):
+    device_id = call.data.get(ATTR_DEVICE_ID)
+    for entry in _async_target_entries(hass, device_id):
         coordinator = entry.runtime_data.coordinator
         try:
             await coordinator.client.async_set_page(page)
@@ -343,7 +355,8 @@ async def _async_set_page(hass: HomeAssistant, call: ServiceCall) -> None:
             raise HomeAssistantError(
                 f"Astrion device for entry {entry.title} unreachable: {err}"
             ) from err
-        await coordinator.async_request_refresh()
+        if not coordinator.has_push_webhook:
+            await coordinator.async_request_refresh()
 
 
 async def _async_start_activity(hass: HomeAssistant, call: ServiceCall) -> None:
@@ -351,18 +364,20 @@ async def _async_start_activity(hass: HomeAssistant, call: ServiceCall) -> None:
 
     Same "every configured device" fan-out as set_page — a no-op for
     devices that don't have an Activity with this id, since activity ids
-    are only unique within one device's dashboard.json. This field has no
-    selector (services.yaml: free text, unlike ring's device selector)
-    since an Activity's internal id isn't known to HA ahead of time — a
-    typo or the display name typed here instead of the id used to
-    silently do nothing on every device with zero feedback; raising below
-    instead. select.activite_<room> is the friendlier path (a real
-    dropdown, matches by name) if this keeps happening — see select.py's
+    are only unique within one device's dashboard.json. `device_id`
+    narrows the fan-out to one device first, same as `ring`; the id still
+    has no selector of its own (services.yaml: free text) since an
+    Activity's internal id isn't known to HA ahead of time — a typo or the
+    display name typed here instead of the id used to silently do nothing
+    on every device with zero feedback; raising below instead.
+    select.activite_<room> is the friendlier path (a real dropdown,
+    matches by name) if this keeps happening — see select.py's
     AstrionActivitySelect.
     """
     activity_id = call.data[ATTR_ACTIVITY_ID]
+    device_id = call.data.get(ATTR_DEVICE_ID)
     matched = False
-    for entry in hass.config_entries.async_entries(DOMAIN):
+    for entry in _async_target_entries(hass, device_id):
         coordinator = entry.runtime_data.coordinator
         if not any(a.id == activity_id for a in coordinator.data.activities):
             continue
@@ -375,7 +390,8 @@ async def _async_start_activity(hass: HomeAssistant, call: ServiceCall) -> None:
             raise HomeAssistantError(
                 f"Astrion device for entry {entry.title} unreachable: {err}"
             ) from err
-        await coordinator.async_request_refresh()
+        if not coordinator.has_push_webhook:
+            await coordinator.async_request_refresh()
     if not matched:
         raise HomeAssistantError(
             f"No configured Astrion device has an Activity with id '{activity_id}'"
@@ -386,11 +402,13 @@ async def _async_stop_activity(hass: HomeAssistant, call: ServiceCall) -> None:
     """Handle astrion.stop_activity — see services.yaml.
 
     Same fan-out again, skipping devices with no such room — room names
-    are only unique within one device's dashboard.json.
+    are only unique within one device's dashboard.json. `device_id`
+    narrows the fan-out to one device first, same as `ring`.
     """
     room = call.data[ATTR_ROOM]
+    device_id = call.data.get(ATTR_DEVICE_ID)
     matched = False
-    for entry in hass.config_entries.async_entries(DOMAIN):
+    for entry in _async_target_entries(hass, device_id):
         coordinator = entry.runtime_data.coordinator
         if room not in coordinator.data.rooms:
             continue
@@ -401,7 +419,8 @@ async def _async_stop_activity(hass: HomeAssistant, call: ServiceCall) -> None:
             raise HomeAssistantError(
                 f"Astrion device for entry {entry.title} unreachable: {err}"
             ) from err
-        await coordinator.async_request_refresh()
+        if not coordinator.has_push_webhook:
+            await coordinator.async_request_refresh()
     if not matched:
         raise HomeAssistantError(
             f"No configured Astrion device has a room named '{room}'"

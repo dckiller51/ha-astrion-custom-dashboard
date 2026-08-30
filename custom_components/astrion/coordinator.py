@@ -59,6 +59,12 @@ class AstrionCoordinator(DataUpdateCoordinator[AstrionData]):
         )
         self.client = client
         self.unique_id = unique_id
+        # Set by __init__.py right after registering (or skipping) the push
+        # webhook. Read by select.py to decide whether an action's own
+        # immediate async_request_refresh() is worth doing at all — see its
+        # docstring for why that immediate refresh is actually harmful once
+        # a webhook is configured, not just redundant.
+        self.has_push_webhook = False
         self.device_info = DeviceInfo(
             identifiers={(DOMAIN, unique_id)},
             name=device_name,

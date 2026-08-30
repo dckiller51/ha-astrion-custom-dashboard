@@ -5,6 +5,11 @@ set_page:
       example: "Media"
       selector:
         text:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: astrion
 start_activity:
   fields:
     activity_id:
@@ -12,13 +17,23 @@ start_activity:
       example: "watch_appletv"
       selector:
         text:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: astrion
 stop_activity:
   fields:
     room:
       required: true
-      example: "Salon"
+      example: "Living room"
       selector:
         text:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: astrion
 ring:
   fields:
     device_id:

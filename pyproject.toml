@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "astrion"
-version = "2026.8.4"
+version = "2026.8.5"
 description = "Home Assistant custom integration to remotely control and automate an Astrion Custom Dashboard remote"
 readme = "README.md"
 license = { text = "Apache-2.0" }

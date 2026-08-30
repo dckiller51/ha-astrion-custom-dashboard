@@ -59,7 +59,36 @@ async def async_setup_entry(
     entry.async_on_unload(coordinator.async_add_listener(_add_new_room_selects))
 
 
-class AstrionPageSelect(CoordinatorEntity[AstrionCoordinator], SelectEntity):
+class AstrionSelectEntity(CoordinatorEntity[AstrionCoordinator], SelectEntity):
+    """Shared base for Astrion's select entities.
+
+    Just the one helper: after an action, decide whether an immediate
+    `async_request_refresh()` is worth doing.
+
+    Without a push webhook, it's the only way this action's result shows up
+    promptly, so it's worth the (small, harmless) chance of racing the
+    device and needing the next poll to correct it anyway.
+
+    *With* a push webhook, that immediate refresh becomes actively
+    counterproductive: `/set-page` and friends return as soon as the
+    request is accepted, not once the change has actually landed (see
+    ConfigServer.kt's own docstring on this), so the refresh's GET almost
+    always beats the on-device transition and reads back the *old* value —
+    overwriting the correct optimistic state HA just showed, with a wrong
+    one, for however long it takes the webhook (or the next regular poll)
+    to correct it. Skipping it here leaves the webhook as the sole fast
+    path, with regular polling still covering the case where a push never
+    arrives at all.
+    """
+
+    async def _maybe_refresh(self) -> None:
+        """Request an immediate refresh, unless a push webhook makes it worse than useless."""
+        if self.coordinator.has_push_webhook:
+            return
+        await self.coordinator.async_request_refresh()
+
+
+class AstrionPageSelect(AstrionSelectEntity):
     """Select representation of Astrion's swipeable dashboard pages."""
 
     _attr_has_entity_name = True
@@ -90,10 +119,10 @@ class AstrionPageSelect(CoordinatorEntity[AstrionCoordinator], SelectEntity):
             raise HomeAssistantError(str(err)) from err
         except AstrionApiError as err:
             raise HomeAssistantError(f"Astrion device unreachable: {err}") from err
-        await self.coordinator.async_request_refresh()
+        await self._maybe_refresh()
 
 
-class AstrionActivitySelect(CoordinatorEntity[AstrionCoordinator], SelectEntity):
+class AstrionActivitySelect(AstrionSelectEntity):
     """Select entity to start — or stop — the Activity active in one room.
 
     Complements sensor.active_activity_<room> the same way select.page
@@ -140,7 +169,7 @@ class AstrionActivitySelect(CoordinatorEntity[AstrionCoordinator], SelectEntity)
                 await self.coordinator.client.async_stop_activity(self._room)
             except AstrionApiError as err:
                 raise HomeAssistantError(f"Astrion device unreachable: {err}") from err
-            await self.coordinator.async_request_refresh()
+            await self._maybe_refresh()
             return
 
         activity = next((a for a in self._activities if a.name == option), None)
@@ -154,4 +183,4 @@ class AstrionActivitySelect(CoordinatorEntity[AstrionCoordinator], SelectEntity)
             raise HomeAssistantError(str(err)) from err
         except AstrionApiError as err:
             raise HomeAssistantError(f"Astrion device unreachable: {err}") from err
-        await self.coordinator.async_request_refresh()
+        await self._maybe_refresh()
