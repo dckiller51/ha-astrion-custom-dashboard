@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 <!--next-version-placeholder-->
 
+## 2026.8.5
+
+### ✨ New features
+
+- **Per-device targeting for `set_page`, `start_activity`, and `stop_activity`.** All three now accept the same optional `device_id` field `ring` already had, to target one specific Astrion device in a multi-device home instead of fanning out to every configured one (the default, unchanged, when omitted).
+
+### 🔧 Fixes
+
+- **Selecting a page or Activity from Home Assistant briefly bounced back to the old value before correcting itself**, on setups with the 2026.8.4 push webhook configured. `select.page`/`select.activity_<room>` (and the `set_page`/`start_activity`/`stop_activity` services) each requested an immediate `coordinator.async_request_refresh()` right after their action — but the device's own `/set-page`, `/activities/start` etc. return as soon as the request is accepted, not once the change has actually landed on screen, so that immediate refresh routinely read back the _old_ state and overwrote the correct one HA had just shown, until the webhook (or the next regular poll) corrected it a moment later. That immediate refresh is now skipped whenever a push webhook is configured — the webhook is fast enough to be the sole source of the quick update, and regular polling is unaffected, still covering the case where a push never arrives.
+
+### 🧱 Internal
+
+- `coordinator.py`: new `AstrionCoordinator.has_push_webhook` flag, set in `__init__.py` right after the webhook is (or isn't) registered for a config entry.
+- `select.py`: `AstrionPageSelect`/`AstrionActivitySelect` now share a small `AstrionSelectEntity` base with one helper, `_maybe_refresh()`, replacing every direct `await self.coordinator.async_request_refresh()` call site.
+- `__init__.py`: `_async_set_page`/`_async_start_activity`/`_async_stop_activity` now resolve their target entries via `_async_target_entries(hass, device_id)` (previously `ring`-only) instead of always fanning out to `hass.config_entries.async_entries(DOMAIN)`, and skip their own post-action refresh under the same `has_push_webhook` condition as `select.py`.
+- `services.yaml`: added the `device_id` device selector (`integration: astrion`) to `set_page`, `start_activity`, and `stop_activity`, matching `ring`'s.
+
+### 📋 Requirements
+
+No device-side change needed — this is HA-integration-only. Works with any Astrion Custom Dashboard version already compatible with 2026.8.4's push webhook (v1.0.7+) to get the fix; `device_id` targeting works regardless of whether a webhook is configured.
+
 ## 2026.8.4
 
 ### ✨ New features
