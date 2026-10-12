@@ -1,13 +1,22 @@
 {
   "config": {
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "reconfigure_successful": "Re-configuration was successful"
     },
     "error": {
       "cannot_connect": "Failed to connect",
       "unknown": "Unexpected error"
     },
     "step": {
+      "reconfigure": {
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "description": "New IP address of this Astrion remote — or of a replacement remote that should take over this one's entities and automations.",
+        "title": "Change the remote's address"
+      },
       "user": {
         "data": {
           "host": "Host",
@@ -49,6 +58,9 @@
       },
       "current_page": {
         "name": "Current page"
+      },
+      "last_seen": {
+        "name": "Last seen"
       }
     },
     "update": {

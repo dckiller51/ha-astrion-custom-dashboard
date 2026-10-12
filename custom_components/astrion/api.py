@@ -47,6 +47,25 @@ class AstrionVersion:
 
 
 @dataclass
+class AstrionInfo:
+    """Who the remote is, as reported by /info (Astrion 1.2.7+).
+
+    `id` is stable for the life of the handset (derived from Android's
+    ANDROID_ID: survives app updates, reinstalls and IP changes); `name` is
+    the friendly name set on the remote ("Living room").
+    """
+
+    id: str
+    name: str
+    manufacturer: str = ""
+    model: str = ""
+    android: str = ""
+    version: str = ""
+    # Whether a push webhook id is set on the remote (Astrion 1.2.7+).
+    webhook: bool = False
+
+
+@dataclass
 class AstrionBattery:
     """Battery status of the tablet running Astrion, as reported by /battery.
 
@@ -98,6 +117,26 @@ class AstrionClient:
         if not isinstance(data, dict):
             raise AstrionApiError(f"Unexpected /version response: {data!r}")
         return AstrionVersion(version=data["version"], version_code=data["versionCode"])
+
+    async def async_get_info(self) -> AstrionInfo | None:
+        """Return the remote's identity, or None for an app older than 1.2.7 (no /info)."""
+        try:
+            data = await self._request("GET", "/info")
+        except ValueError:
+            return None  # an older app answering with its web page instead of JSON
+        if data is None:
+            return None
+        if not isinstance(data, dict) or not data.get("id"):
+            raise AstrionApiError(f"Unexpected /info response: {data!r}")
+        return AstrionInfo(
+            id=str(data["id"]),
+            name=str(data.get("name") or data["id"]),
+            manufacturer=str(data.get("manufacturer") or ""),
+            model=str(data.get("model") or ""),
+            android=str(data.get("android") or ""),
+            version=str(data.get("version") or ""),
+            webhook=bool(data.get("webhook", False)),
+        )
 
     async def async_get_battery(self) -> AstrionBattery:
         """Return the tablet's own battery level and charging state."""
@@ -192,6 +231,8 @@ class AstrionClient:
             async with self._session.request(
                 method, url, data=data, timeout=DEFAULT_TIMEOUT
             ) as response:
+                if response.status == 404 and path == "/info":
+                    return None  # app older than 1.2.7
                 if response.status == 404 and path == "/set-page":
                     payload = await response.json(content_type=None)
                     raise AstrionPageNotFound(payload.get("error", "unknown page"))

@@ -9,6 +9,8 @@ a real (if harmless) side effect. This sensor is purely observational.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -43,7 +45,11 @@ async def async_setup_entry(
     """
     coordinator = entry.runtime_data.coordinator
     async_add_entities(
-        [AstrionCurrentPageSensor(coordinator), AstrionBatterySensor(coordinator)]
+        [
+            AstrionCurrentPageSensor(coordinator),
+            AstrionBatterySensor(coordinator),
+            AstrionLastSeenSensor(coordinator),
+        ]
     )
 
     known_rooms: set[str] = set()
@@ -108,6 +114,37 @@ class AstrionBatterySensor(CoordinatorEntity[AstrionCoordinator], SensorEntity):
     def native_value(self) -> int | None:
         """Return the tablet's current battery level, 0-100."""
         return self.coordinator.data.battery.level
+
+
+class AstrionLastSeenSensor(CoordinatorEntity[AstrionCoordinator], SensorEntity):
+    """When the remote last answered a poll or pushed something.
+
+    Stays available while the remote is unreachable — that's exactly when
+    "last seen 2 hours ago" is worth reading (same reasoning as
+    binary_sensor.connectivity). With push confirmed, polls are 5 minutes
+    apart, so this moves with every page change, button or battery step.
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "last_seen"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: AstrionCoordinator) -> None:
+        """Initialize the last-seen sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.unique_id}-last-seen"
+        self._attr_device_info = coordinator.device_info
+
+    @property
+    def available(self) -> bool:
+        """Always available — see class docstring."""
+        return True
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Return when the remote was last heard from."""
+        return self.coordinator.last_seen
 
 
 class AstrionActiveActivitySensor(CoordinatorEntity[AstrionCoordinator], SensorEntity):

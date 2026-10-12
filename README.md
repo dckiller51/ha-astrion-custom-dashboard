@@ -97,6 +97,37 @@ automatically as soon as a room is discovered — no reload needed after
 editing `dashboard.json` to add a new room, once the coordinator's next
 refresh picks it up.
 
+## Several remotes
+
+Add each remote once. With Astrion **1.2.7+** every remote is identified by its own id
+(not its IP), named after the name set on the remote (Settings › About, or "Rename" on
+its web page), and gets its own device and entities.
+
+- **New IP?** With the push webhook set, the integration follows the remote by itself.
+  Otherwise add it again with its new IP — the existing entry is updated, nothing is
+  duplicated — or use **Reconfigure** on the entry.
+- **Replacing a remote?** **Reconfigure** the old entry with the new remote's IP: it
+  takes over the old one's entities, device and automations.
+- `sensor.<remote>_last_seen` — when the remote last answered or pushed something.
+- `astrion_event` — fired when a hotkey set to **"Home Assistant event"** is pressed
+  (needs the push webhook), with the HA `device_id`:
+
+  ```yaml
+  trigger:
+    - platform: event
+      event_type: astrion_event
+      event_data:
+        event: movie_scene # the name given in the hotkey
+        device_id: abc123def456 # optional — only this remote
+  ```
+
+  Data: `type: button`, `device_id`, `remote_id`, `remote_name`, `event`, `key`,
+  `long` (held or not), `page`.
+
+With the webhook set and Astrion 1.2.7+, page, Activities and battery are pushed by the
+remote, so the integration only polls it every 5 minutes (instead of every 10 s) — each
+poll wakes the remote's Wi-Fi.
+
 ## Useful links
 
 - [Astrion Custom Dashboard (Android app / APK)](https://github.com/dckiller51/astrion-custom-dashboard)

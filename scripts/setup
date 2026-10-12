@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
-# Installs project + dev dependencies. Run once after cloning, or whenever
-# pyproject.toml's [project.optional-dependencies].dev list changes.
+# Installs project + dev dependencies. Run once after cloning, and again to move
+# the container to the latest Home Assistant (e.g. when pyproject.toml's
+# homeassistant minimum goes up): --upgrade-strategy eager upgrades
+# homeassistant and pytest-homeassistant-custom-component together.
 set -e
 
 cd "$(dirname "$0")/.."
 
 python3 -m pip install --upgrade pip setuptools wheel
-python3 -m pip install -e ".[dev]"
+# editable_mode=compat: a plain .pth path entry. The default "strict" editable
+# install adds an import-hook entry to custom_components.__path__, which Home
+# Assistant's loader then tries to list as a directory (FileNotFoundError:
+# '__editable__.astrion-….finder.__path_hook__') — every test loading the
+# integration fails.
+python3 -m pip install --upgrade --upgrade-strategy eager -e ".[dev]" \
+    --config-settings editable_mode=compat
 pre-commit install

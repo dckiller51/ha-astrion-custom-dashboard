@@ -18,7 +18,13 @@ from homeassistant.const import CONF_HOST, CONF_PORT, CONF_WEBHOOK_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.astrion.api import AstrionApiError, AstrionPage, AstrionVersion
+from custom_components.astrion.api import (
+    AstrionApiError,
+    AstrionBattery,
+    AstrionInfo,
+    AstrionPage,
+    AstrionVersion,
+)
 from custom_components.astrion.const import DOMAIN
 
 pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
@@ -27,7 +33,9 @@ VALID_INPUT = {CONF_HOST: "10.0.0.5", CONF_PORT: 8080}
 
 
 @contextmanager
-def _mock_reachable_device(pages: list[AstrionPage]) -> Iterator[None]:
+def _mock_reachable_device(
+    pages: list[AstrionPage], info: AstrionInfo | None = None
+) -> Iterator[None]:
     """Mock every AstrionClient call the flow and the coordinator make.
 
     Covers both the config flow's own validation call and the coordinator's
@@ -36,6 +44,9 @@ def _mock_reachable_device(pages: list[AstrionPage]) -> Iterator[None]:
     real (blocked-by-tests) socket call. Also mocks the update coordinator's
     GitHub check for the same reason — `async_setup_entry` runs it right
     alongside the device coordinator's own first refresh.
+
+    `info` is what /info answers — None (the default) is an app older than
+    1.2.7, which has no /info.
     """
     with (
         patch(
@@ -60,7 +71,11 @@ def _mock_reachable_device(pages: list[AstrionPage]) -> Iterator[None]:
         ),
         patch(
             "custom_components.astrion.api.AstrionClient.async_get_battery",
-            AsyncMock(return_value={"level": 100}),
+            AsyncMock(return_value=AstrionBattery(level=100, charging=False)),
+        ),
+        patch(
+            "custom_components.astrion.api.AstrionClient.async_get_info",
+            AsyncMock(return_value=info),
         ),
         patch(
             "custom_components.astrion.update.AstrionUpdateCoordinator._async_update_data",

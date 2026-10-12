@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, replace
+from datetime import timedelta
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
-import voluptuous as vol
+import probatio as vol
 from aiohttp.web import Request
 from homeassistant.components import webhook
 from homeassistant.config_entries import ConfigEntry
@@ -18,12 +20,15 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.util import dt as dt_util
 
 from .api import (
     AstrionActivity,
     AstrionActivityNotFound,
     AstrionApiError,
+    AstrionBattery,
     AstrionClient,
+    AstrionInfo,
     AstrionPageNotFound,
 )
 from .const import (
@@ -34,9 +39,12 @@ from .const import (
     ATTR_ROOM,
     ATTR_SOUND,
     ATTR_VOLUME,
+    CONF_ENTITY_PREFIX,
     DEFAULT_RING_DURATION,
     DEFAULT_RING_VOLUME,
     DOMAIN,
+    EVENT_ASTRION,
+    NAME,
     PLATFORMS,
     RING_SOUNDS,
     SERVICE_RING,
@@ -45,6 +53,7 @@ from .const import (
     SERVICE_STOP_ACTIVITY,
     SOUND_RINGTONE,
     STARTUP_MESSAGE,
+    UPDATE_INTERVAL_PUSH_SECONDS,
 )
 from .coordinator import AstrionCoordinator, AstrionData
 
@@ -122,8 +131,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> b
 
     session = async_get_clientsession(hass)
     client = AstrionClient(session, entry.data[CONF_HOST], entry.data[CONF_PORT])
+    info = await _async_get_info(client)
+    if info is not None:
+        _adopt_remote_identity(hass, entry, info)
     coordinator = AstrionCoordinator(
-        hass, client, entry.unique_id or entry.entry_id, entry.title
+        hass,
+        client,
+        entry.data.get(CONF_ENTITY_PREFIX) or entry.unique_id or entry.entry_id,
+        entry.title,
+        info,
     )
 
     await coordinator.async_config_entry_first_refresh()
@@ -147,10 +163,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> b
             DOMAIN,
             "Astrion push",
             webhook_id,
-            _make_webhook_handler(coordinator),
+            _make_webhook_handler(hass, entry, coordinator),
             allowed_methods=["POST"],
         )
         coordinator.has_push_webhook = True
+        if info is not None and info.webhook:
+            # Astrion 1.2.7+ with its webhook set: page, Activities and battery
+            # are pushed, so slow polling down right away (see _note_push()).
+            _confirm_push(coordinator)
         _LOGGER.debug(
             "Astrion webhook registered: %s (all registered ids now: %s)",
             webhook_id,
@@ -206,6 +226,65 @@ async def async_setup_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> b
     return True
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> bool:
+    """Migrate an entry created before 2026.10.0.
+
+    1.1 -> 1.2: write CONF_ENTITY_PREFIX — the "host:port" unique_id every
+    existing entity and the device were built from — so entry.unique_id is
+    free to become the remote's own id without renaming anything.
+    """
+    if entry.version > 1:
+        return False  # created by a newer version of this integration
+    if entry.minor_version < 2:
+        hass.config_entries.async_update_entry(
+            entry,
+            data={
+                **entry.data,
+                CONF_ENTITY_PREFIX: entry.unique_id or entry.entry_id,
+            },
+            minor_version=2,
+        )
+    return True
+
+
+async def _async_get_info(client: AstrionClient) -> AstrionInfo | None:
+    """Return the remote's /info, or None (app older than 1.2.7, or unreachable)."""
+    try:
+        return await client.async_get_info()
+    except AstrionApiError:
+        return None
+
+
+def _adopt_remote_identity(
+    hass: HomeAssistant, entry: AstrionConfigEntry, info: AstrionInfo
+) -> None:
+    """Key this entry on the remote's own id, and name it after the remote.
+
+    An entry from before 2026.10.0 is keyed on "host:port"; once its remote
+    runs Astrion 1.2.7+ it switches to the remote's id (entities don't move —
+    see CONF_ENTITY_PREFIX). The default title is replaced by the remote's
+    name; a title the user typed is left alone. Done before the update
+    listener is registered, so it doesn't trigger a reload.
+    """
+    updates: dict[str, Any] = {}
+    if entry.unique_id != info.id:
+        other = hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, info.id)
+        if other is None:
+            updates["unique_id"] = info.id
+        else:
+            _LOGGER.warning(
+                "Astrion %s: remote %s (%s) is already set up as '%s'",
+                entry.title,
+                info.id,
+                info.name,
+                other.title,
+            )
+    if entry.title == NAME and info.name:
+        updates["title"] = info.name
+    if updates:
+        hass.config_entries.async_update_entry(entry, **updates)
+
+
 async def async_unload_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> bool:
     """Unload a config entry."""
     webhook_id = entry.data.get(CONF_WEBHOOK_ID)
@@ -220,7 +299,7 @@ async def _async_reload_entry(hass: HomeAssistant, entry: AstrionConfigEntry) ->
 
 
 def _make_webhook_handler(
-    coordinator: AstrionCoordinator,
+    hass: HomeAssistant, entry: AstrionConfigEntry, coordinator: AstrionCoordinator
 ) -> Callable[[HomeAssistant, str, Request], Coroutine[Any, Any, None]]:
     """Bind the webhook handler to this entry's own coordinator via closure.
 
@@ -236,6 +315,9 @@ def _make_webhook_handler(
         Payload shapes (see Astrion's `HaClient.pushWebhook` call sites):
           {"type": "page", "index": <int>, "name": "<str>"}
           {"type": "activity", "rooms": {"<room>": {"id": "...", "name": "..."} | null}}
+          {"type": "battery", "level": <int>, "charging": <bool>}       (1.2.7+)
+          {"type": "button", "event": "...", "key": "...", "long": <bool>, "page": "..."}  (1.2.7+)
+        From Astrion 1.2.7 every push also carries "remote": {"id", "name"}.
         Anything else — malformed JSON or an unrecognized "type" — is
         silently ignored; this is a nice-to-have speedup, never the only
         way this data arrives (the regular poll corrects anything it misses).
@@ -244,14 +326,17 @@ def _make_webhook_handler(
         refresh succeeds (async_setup_entry would have raised
         ConfigEntryNotReady and never gotten this far otherwise).
         """
-        data = coordinator.data
         try:
             payload = await request.json()
         except ValueError:
             _LOGGER.debug("Astrion webhook %s: invalid JSON body, ignoring", webhook_id)
             return
 
-        kind = payload.get("type") if isinstance(payload, dict) else None
+        if not isinstance(payload, dict):
+            return
+        _note_push(hass, entry, coordinator, payload, request.remote)
+        data = coordinator.data
+        kind = payload.get("type")
         if kind == "page":
             _apply_page_push(coordinator, data, payload)
             _LOGGER.debug(
@@ -262,12 +347,148 @@ def _make_webhook_handler(
             _LOGGER.debug(
                 "Astrion webhook %s: applied activity push %r", webhook_id, payload
             )
+        elif kind == "battery":
+            _apply_battery_push(coordinator, data, payload)
+        elif kind == "button":
+            _fire_button_event(hass, _device(hass, entry, coordinator), payload)
+            # last_seen moved: let the "Last seen" sensor show it.
+            coordinator.async_update_listeners()
         else:
             _LOGGER.debug(
                 "Astrion webhook %s: unknown type %r, ignoring", webhook_id, kind
             )
 
     return _handle_webhook
+
+
+def _note_push(
+    hass: HomeAssistant,
+    entry: AstrionConfigEntry,
+    coordinator: AstrionCoordinator,
+    payload: dict,
+    sender: str | None,
+) -> None:
+    """Record what every push tells us, whatever its type.
+
+    - The remote is alive (last seen).
+    - From Astrion 1.2.7 (a "remote" block): page, Activities and battery
+      all arrive by push, so polling drops to every 5 minutes — each poll
+      wakes the handset's Wi-Fi.
+    - Its current name: the device is renamed to follow (a name set in
+      Home Assistant itself still wins).
+    - Where it is: a push from a new IP means the remote moved (DHCP).
+    """
+    coordinator.last_seen = dt_util.utcnow()
+    remote = payload.get("remote")
+    if not isinstance(remote, dict):
+        return
+    _confirm_push(coordinator)
+    name = remote.get("name")
+    if isinstance(name, str) and name:
+        _sync_device_name(hass, entry, coordinator, name)
+    remote_id = remote.get("id")
+    if sender and remote_id == entry.unique_id and sender != entry.data[CONF_HOST]:
+        hass.async_create_task(_async_follow_new_address(hass, entry, sender))
+
+
+def _device(
+    hass: HomeAssistant, entry: AstrionConfigEntry, coordinator: AstrionCoordinator
+) -> dr.DeviceEntry | None:
+    """Return this entry's device in the device registry."""
+    return dr.async_get(hass).async_get_device_by_identifier(
+        config_entry_id=entry.entry_id, identifier=(DOMAIN, coordinator.unique_id)
+    )
+
+
+def _confirm_push(coordinator: AstrionCoordinator) -> None:
+    """Poll every 5 minutes instead of 10 s: the remote pushes what changes."""
+    if coordinator.push_confirmed:
+        return
+    coordinator.push_confirmed = True
+    coordinator.update_interval = timedelta(seconds=UPDATE_INTERVAL_PUSH_SECONDS)
+    _LOGGER.debug("Astrion %s: push confirmed, polling slowed down", coordinator.name)
+
+
+def _sync_device_name(
+    hass: HomeAssistant,
+    entry: AstrionConfigEntry,
+    coordinator: AstrionCoordinator,
+    name: str,
+) -> None:
+    """Rename the device after the remote (the user's own HA name, if any, still wins)."""
+    device = _device(hass, entry, coordinator)
+    if device is not None and device.name != name:
+        dr.async_get(hass).async_update_device(device.id, name=name)
+
+
+async def _async_follow_new_address(
+    hass: HomeAssistant, entry: AstrionConfigEntry, address: str
+) -> None:
+    """Follow the remote to the new IP it pushed from, once /info confirms it.
+
+    Only a private IP that answers /info with this entry's own id is
+    accepted, so a reverse proxy in front of Home Assistant (pushes coming
+    from 127.0.0.1 or the proxy's address) can never redirect the entry.
+    Updating the entry reloads it on the new address.
+    """
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
+        return
+    if not ip.is_private or ip.is_loopback:
+        return
+    client = AstrionClient(
+        async_get_clientsession(hass), address, entry.data[CONF_PORT]
+    )
+    info = await _async_get_info(client)
+    if info is None or info.id != entry.unique_id:
+        return
+    _LOGGER.info(
+        "Astrion %s moved from %s to %s — following it",
+        entry.title,
+        entry.data[CONF_HOST],
+        address,
+    )
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, CONF_HOST: address}
+    )
+
+
+def _apply_battery_push(
+    coordinator: AstrionCoordinator, data: AstrionData, payload: dict
+) -> None:
+    """Handle a `{"type": "battery", "level": 57, "charging": false}` push."""
+    level = payload.get("level")
+    battery = AstrionBattery(
+        level=level if isinstance(level, int) else data.battery.level,
+        charging=bool(payload.get("charging", data.battery.charging)),
+    )
+    coordinator.async_set_updated_data(replace(data, battery=battery))
+
+
+def _fire_button_event(
+    hass: HomeAssistant, device: dr.DeviceEntry | None, payload: dict
+) -> None:
+    """Handle a `{"type": "button", ...}` push: fire `astrion_event` with the HA device id.
+
+    Same data as the remote's own `astrion_button` event, plus `device_id` —
+    and unlike that one, it doesn't need an administrator's token on the remote.
+    """
+    raw_remote = payload.get("remote")
+    remote: dict[str, Any] = raw_remote if isinstance(raw_remote, dict) else {}
+    hass.bus.async_fire(
+        EVENT_ASTRION,
+        {
+            "type": "button",
+            "device_id": device.id if device is not None else None,
+            "remote_id": remote.get("id"),
+            "remote_name": remote.get("name"),
+            "event": payload.get("event"),
+            "key": payload.get("key"),
+            "long": bool(payload.get("long", False)),
+            "page": payload.get("page"),
+        },
+    )
 
 
 def _apply_page_push(

@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 <!--next-version-placeholder-->
 
+## 2026.10.0
+
+### ✨ New features
+
+- **Several remotes in one home.** With Astrion 1.2.7+, each remote is identified by its own id (`/info`), no longer by `host:port`: the entry and device are named after the name set on the remote, and renaming it on the remote renames the device (a name set in Home Assistant still wins).
+- **The remote's new IP is followed automatically.** A push from a new private IP is checked against `/info` (same remote id) and the entry moves there. Adding a known remote again with its new IP also just updates the existing entry.
+- **Reconfigure.** Change a remote's address from the entry's menu — or point it at a replacement remote, which takes over the old one's entities, device and automations.
+- **`astrion_event`.** A hotkey set to "Home Assistant event" on the remote (1.2.7+) fires `astrion_event` with the HA `device_id`, `remote_id`, `remote_name`, `event`, `key`, `long` and `page` — one automation per remote and button, no administrator token needed on the remote.
+- **Battery by push.** `{"type": "battery"}` pushes update the battery and charging sensors right away.
+- **`sensor.<remote>_last_seen`** (diagnostic): when the remote last answered a poll or pushed something; stays available while the remote is unreachable.
+
+### ⚡ Battery life of the remote
+
+- Once the remote proves it pushes (Astrion 1.2.7+: a push carrying its identity), polling drops from every 10 s to every **5 minutes**: page, Activities and battery all arrive by push, and each poll woke the remote's Wi-Fi.
+
+### 🔧 Fixes
+
+- **Home Assistant 2026.9+ (probatio):** schemas are built with `probatio` instead of `voluptuous` — fixes the `mypy` errors on `async_show_form(data_schema=…)` and `async_register(schema=…)`. Requires Home Assistant **2026.9.0** or later.
+- Device registry lookups use `async_get_device_by_identifier` (HA deprecated `async_get_device`).
+
+### 🧱 Internal
+
+- Config entry minor version 1.2: `entity_prefix` in the entry's data keeps every entity unique_id and the device identifier on the value they were created with, so `entry.unique_id` can become the remote's id (or a replacement's) without renaming anything. Migrated automatically.
+- `api.py`: `AstrionInfo` + `async_get_info()` (None for an app without `/info`).
+- New tests: `tests/test_multi_remote.py` (identity, migration, re-add / reconfigure, webhook battery + button, IP follow).
+
+### 📋 Requirements
+
+- Home Assistant 2026.9.0+.
+- Everything works with older Astrion apps as before (identified by `host:port`); identity, IP following, `astrion_event`, battery push and the 5-minute polling need **Astrion 1.2.7+** with the push webhook configured.
+
 ## 2026.8.5
 
 ### ✨ New features
