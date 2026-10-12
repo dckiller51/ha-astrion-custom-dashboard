@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import voluptuous as vol
+import probatio
 from homeassistant.components import webhook
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -18,23 +18,31 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import AstrionApiError, AstrionClient
-from .const import DEFAULT_PORT, DOMAIN, NAME
+from .api import AstrionApiError, AstrionClient, AstrionInfo
+from .const import CONF_ENTITY_PREFIX, DEFAULT_PORT, DOMAIN, NAME
 
 _LOGGER = logging.getLogger(__name__)
 
-DATA_SCHEMA = vol.Schema(
+DATA_SCHEMA = probatio.Schema(
     {
-        vol.Required(CONF_HOST): str,
-        vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
+        probatio.Required(CONF_HOST): str,
+        probatio.Optional(CONF_PORT, default=DEFAULT_PORT): int,
     }
 )
 
-REGENERATE_SCHEMA = vol.Schema({vol.Optional("regenerate", default=False): bool})
+REGENERATE_SCHEMA = probatio.Schema(
+    {probatio.Optional("regenerate", default=False): bool}
+)
 
 
-async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Check we can reach the device's /pages endpoint."""
+async def _validate_input(
+    hass: HomeAssistant, data: dict[str, Any]
+) -> AstrionInfo | None:
+    """Check we can reach the device's /pages endpoint, and ask who it is.
+
+    Returns the remote's /info (Astrion 1.2.7+), or None for an older app —
+    which still works, identified by host:port like before.
+    """
     session = async_get_clientsession(hass)
     client = AstrionClient(session, data[CONF_HOST], data[CONF_PORT])
     try:
@@ -45,13 +53,23 @@ async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str
     if not pages:
         raise CannotConnect
 
-    return {"title": NAME}
+    try:
+        return await client.async_get_info()
+    except AstrionApiError:
+        return None
+
+
+def _unique_id(info: AstrionInfo | None, data: dict[str, Any]) -> str:
+    """Return the remote's own id when it has one, else host:port (apps < 1.2.7)."""
+    return info.id if info is not None else f"{data[CONF_HOST]}:{data[CONF_PORT]}"
 
 
 class AstrionConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Astrion Custom Dashboard."""
 
     VERSION = 1
+    # 1.2: CONF_ENTITY_PREFIX in entry.data — see __init__.py's async_migrate_entry.
+    MINOR_VERSION = 2
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -81,15 +99,71 @@ class AstrionConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception validating Astrion connection")
                 errors["base"] = "unknown"
             else:
-                await self.async_set_unique_id(
-                    f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}"
+                unique_id = _unique_id(info, user_input)
+                await self.async_set_unique_id(unique_id)
+                # A remote that's already set up and simply got a new IP: follow it.
+                self._abort_if_unique_id_configured(
+                    updates={
+                        CONF_HOST: user_input[CONF_HOST],
+                        CONF_PORT: user_input[CONF_PORT],
+                    }
                 )
-                self._abort_if_unique_id_configured()
-                data = {**user_input, CONF_WEBHOOK_ID: webhook.async_generate_id()}
-                return self.async_create_entry(title=info["title"], data=data)
+                data = {
+                    **user_input,
+                    CONF_WEBHOOK_ID: webhook.async_generate_id(),
+                    CONF_ENTITY_PREFIX: unique_id,
+                }
+                title = info.name if info is not None else NAME
+                return self.async_create_entry(title=title, data=data)
 
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Point this entry at a new address — or at a replacement remote.
+
+        Entities, the device and automations are kept either way: they hang
+        off CONF_ENTITY_PREFIX, never off the remote's id. A different remote
+        found at the new address (a replacement handset) takes over this
+        entry's identity, unless that remote already has an entry of its own.
+        """
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                info = await _validate_input(self.hass, user_input)
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except Exception:  # pylint: disable=broad-exception-caught
+                _LOGGER.exception("Unexpected exception validating Astrion connection")
+                errors["base"] = "unknown"
+            else:
+                unique_id = _unique_id(info, user_input)
+                other = self.hass.config_entries.async_entry_for_domain_unique_id(
+                    DOMAIN, unique_id
+                )
+                if other is not None and other.entry_id != entry.entry_id:
+                    return self.async_abort(reason="already_configured")
+                return self.async_update_reload_and_abort(
+                    entry,
+                    unique_id=unique_id,
+                    data_updates={
+                        CONF_HOST: user_input[CONF_HOST],
+                        CONF_PORT: user_input[CONF_PORT],
+                    },
+                )
+
+        schema = probatio.Schema(
+            {
+                probatio.Required(CONF_HOST, default=entry.data[CONF_HOST]): str,
+                probatio.Optional(CONF_PORT, default=entry.data[CONF_PORT]): int,
+            }
+        )
+        return self.async_show_form(
+            step_id="reconfigure", data_schema=schema, errors=errors
         )
 
     @staticmethod

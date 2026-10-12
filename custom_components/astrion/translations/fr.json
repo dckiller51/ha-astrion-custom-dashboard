@@ -1,13 +1,22 @@
 {
   "config": {
     "abort": {
-      "already_configured": "Cet appareil est déjà configuré"
+      "already_configured": "Cet appareil est déjà configuré",
+      "reconfigure_successful": "Reconfiguration réussie"
     },
     "error": {
       "cannot_connect": "Échec de connexion",
       "unknown": "Erreur inattendue"
     },
     "step": {
+      "reconfigure": {
+        "data": {
+          "host": "Hôte",
+          "port": "Port"
+        },
+        "description": "Nouvelle adresse IP de cette télécommande Astrion — ou d'une télécommande de remplacement qui doit reprendre ses entités et automatisations.",
+        "title": "Changer l'adresse de la télécommande"
+      },
       "user": {
         "data": {
           "host": "Hôte",
@@ -49,6 +58,9 @@
       },
       "current_page": {
         "name": "Page actuelle"
+      },
+      "last_seen": {
+        "name": "Dernier contact"
       }
     },
     "update": {

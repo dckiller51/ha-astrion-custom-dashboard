@@ -12,7 +12,7 @@ PLATFORMS = [
 ]
 
 NAME = "Astrion Custom Dashboard"
-VERSION = "2026.8.5"
+VERSION = "2026.10.0"
 ISSUE_URL = "https://github.com/dckiller51/ha-astrion-custom-dashboard/issues"
 
 STARTUP_MESSAGE = f"""
@@ -36,6 +36,23 @@ CONF_PAGE = "page"
 # push mechanism (no websocket) for this, so local_polling is the honest
 # iot_class — same reasoning as most local-HTTP integrations without SSE.
 UPDATE_INTERVAL_SECONDS = 10
+
+# Once the remote has proven it pushes through the webhook (Astrion 1.2.7+:
+# page, Activities AND battery all arrive by push), polling is only a safety
+# net — and every poll wakes the remote's Wi-Fi, a real battery cost on the
+# handset. See __init__.py's _note_push().
+UPDATE_INTERVAL_PUSH_SECONDS = 300
+
+# entry.data key: the prefix every entity unique_id and the device identifier
+# were built from when the entry was created. Kept apart from entry.unique_id
+# (the remote's own id since 2026.10.0, "host:port" before) so that adopting
+# a remote's id, following a new IP or swapping in a replacement remote never
+# renames entities or orphans automations.
+CONF_ENTITY_PREFIX = "entity_prefix"
+
+# Fired on the bus for a hotkey set to "Home Assistant event" on the remote
+# (Astrion 1.2.7+, pushed through the webhook) — carries the HA device_id.
+EVENT_ASTRION = "astrion_event"
 
 # How often we check GitHub for the latest astrion-custom-dashboard release.
 # Deliberately much slower than UPDATE_INTERVAL_SECONDS — this hits GitHub's
