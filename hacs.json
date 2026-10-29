@@ -1,5 +1,7 @@
 {
+  "filename": "astrion.zip",
   "homeassistant": "2026.9.0",
   "name": "Astrion Custom Dashboard",
-  "render_readme": true
+  "render_readme": true,
+  "zip_release": true
 }
