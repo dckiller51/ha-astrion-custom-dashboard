@@ -34,6 +34,11 @@ directory, then restart Home Assistant.
 **Settings → Devices & services → Add integration → Astrion Custom Dashboard**, then
 enter the IP address (and port, default `8080`) of your Astrion device.
 
+**Password** _(Astrion 1.4.6+)_: if a password is set on the remote (Settings › Web
+configuration), enter it too; otherwise leave the field empty. Set or changed it later
+on the remote? Home Assistant asks for the new one (re-authentication), or use the
+entry's **Reconfigure**.
+
 ## What you get
 
 - `select.page` — reflects the page currently shown on the remote, and lets

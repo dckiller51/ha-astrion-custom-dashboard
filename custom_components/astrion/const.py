@@ -12,7 +12,7 @@ PLATFORMS = [
 ]
 
 NAME = "Astrion Custom Dashboard"
-VERSION = "2026.10.0"
+VERSION = "2026.11.0"
 ISSUE_URL = "https://github.com/dckiller51/ha-astrion-custom-dashboard/issues"
 
 STARTUP_MESSAGE = f"""

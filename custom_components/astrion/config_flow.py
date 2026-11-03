@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 import probatio
@@ -13,12 +14,12 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.const import CONF_HOST, CONF_PORT, CONF_WEBHOOK_ID
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_WEBHOOK_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import AstrionApiError, AstrionClient, AstrionInfo
+from .api import AstrionApiError, AstrionAuthError, AstrionClient, AstrionInfo
 from .const import CONF_ENTITY_PREFIX, DEFAULT_PORT, DOMAIN, NAME
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,8 +28,12 @@ DATA_SCHEMA = probatio.Schema(
     {
         probatio.Required(CONF_HOST): str,
         probatio.Optional(CONF_PORT, default=DEFAULT_PORT): int,
+        # Astrion 1.4.6+: only when a password is set on the remote.
+        probatio.Optional(CONF_PASSWORD): str,
     }
 )
+
+REAUTH_SCHEMA = probatio.Schema({probatio.Optional(CONF_PASSWORD): str})
 
 REGENERATE_SCHEMA = probatio.Schema(
     {probatio.Optional("regenerate", default=False): bool}
@@ -44,9 +49,13 @@ async def _validate_input(
     which still works, identified by host:port like before.
     """
     session = async_get_clientsession(hass)
-    client = AstrionClient(session, data[CONF_HOST], data[CONF_PORT])
+    client = AstrionClient(
+        session, data[CONF_HOST], data[CONF_PORT], data.get(CONF_PASSWORD)
+    )
     try:
         pages = await client.async_get_pages()
+    except AstrionAuthError as err:
+        raise InvalidAuth from err
     except AstrionApiError as err:
         raise CannotConnect from err
 
@@ -88,8 +97,11 @@ class AstrionConfigFlow(ConfigFlow, domain=DOMAIN):
             self._async_abort_entries_match(
                 {CONF_HOST: user_input[CONF_HOST], CONF_PORT: user_input[CONF_PORT]}
             )
+            user_input = _without_empty_password(user_input)
             try:
                 info = await _validate_input(self.hass, user_input)
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except Exception:  # pylint: disable=broad-exception-caught
@@ -133,8 +145,15 @@ class AstrionConfigFlow(ConfigFlow, domain=DOMAIN):
         entry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
         if user_input is not None:
+            # An empty password keeps the saved one (only the address changes).
+            user_input = {
+                **{k: v for k, v in entry.data.items() if k == CONF_PASSWORD},
+                **_without_empty_password(user_input),
+            }
             try:
                 info = await _validate_input(self.hass, user_input)
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except Exception:  # pylint: disable=broad-exception-caught
@@ -150,9 +169,11 @@ class AstrionConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_update_reload_and_abort(
                     entry,
                     unique_id=unique_id,
-                    data_updates={
+                    data={
+                        **{k: v for k, v in entry.data.items() if k != CONF_PASSWORD},
                         CONF_HOST: user_input[CONF_HOST],
                         CONF_PORT: user_input[CONF_PORT],
+                        **_password_data(user_input),
                     },
                 )
 
@@ -160,10 +181,54 @@ class AstrionConfigFlow(ConfigFlow, domain=DOMAIN):
             {
                 probatio.Required(CONF_HOST, default=entry.data[CONF_HOST]): str,
                 probatio.Optional(CONF_PORT, default=entry.data[CONF_PORT]): int,
+                probatio.Optional(CONF_PASSWORD): str,
             }
         )
         return self.async_show_form(
             step_id="reconfigure", data_schema=schema, errors=errors
+        )
+
+    async def async_step_reauth(
+        self,
+        entry_data: Mapping[str, Any],  # pylint: disable=unused-argument
+    ) -> ConfigFlowResult:
+        """Start a reauth: the remote refused this entry's password."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask for the remote's web page password (empty: the remote has none)."""
+        entry = self._get_reauth_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            data = {
+                CONF_HOST: entry.data[CONF_HOST],
+                CONF_PORT: entry.data[CONF_PORT],
+                **_password_data(user_input),
+            }
+            try:
+                await _validate_input(self.hass, data)
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except Exception:  # pylint: disable=broad-exception-caught
+                _LOGGER.exception("Unexpected exception validating Astrion password")
+                errors["base"] = "unknown"
+            else:
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data={
+                        **{k: v for k, v in entry.data.items() if k != CONF_PASSWORD},
+                        **_password_data(user_input),
+                    },
+                )
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=REAUTH_SCHEMA,
+            errors=errors,
+            description_placeholders={"name": entry.title},
         )
 
     @staticmethod
@@ -221,3 +286,21 @@ def _webhook_placeholders(
 
 class CannotConnect(HomeAssistantError):
     """Error to indicate we cannot connect to the Astrion device."""
+
+
+class InvalidAuth(HomeAssistantError):
+    """The remote's web page password is missing or wrong (Astrion 1.4.6+)."""
+
+
+def _password_data(user_input: Mapping[str, Any]) -> dict[str, str]:
+    """Return {CONF_PASSWORD: …} when one was typed, else an empty dict."""
+    password = (user_input.get(CONF_PASSWORD) or "").strip()
+    return {CONF_PASSWORD: password} if password else {}
+
+
+def _without_empty_password(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Return the form's input without an empty password field."""
+    return {
+        **{k: v for k, v in user_input.items() if k != CONF_PASSWORD},
+        **_password_data(user_input),
+    }

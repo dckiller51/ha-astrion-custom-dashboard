@@ -14,7 +14,7 @@ import probatio as vol
 from aiohttp.web import Request
 from homeassistant.components import webhook
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PORT, CONF_WEBHOOK_ID
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_WEBHOOK_ID
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
@@ -130,7 +130,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: AstrionConfigEntry) -> b
     hass.data.setdefault(DOMAIN, {})
 
     session = async_get_clientsession(hass)
-    client = AstrionClient(session, entry.data[CONF_HOST], entry.data[CONF_PORT])
+    client = AstrionClient(
+        session,
+        entry.data[CONF_HOST],
+        entry.data[CONF_PORT],
+        entry.data.get(CONF_PASSWORD),
+    )
     info = await _async_get_info(client)
     if info is not None:
         _adopt_remote_identity(hass, entry, info)
@@ -438,7 +443,10 @@ async def _async_follow_new_address(
     if not ip.is_private or ip.is_loopback:
         return
     client = AstrionClient(
-        async_get_clientsession(hass), address, entry.data[CONF_PORT]
+        async_get_clientsession(hass),
+        address,
+        entry.data[CONF_PORT],
+        entry.data.get(CONF_PASSWORD),
     )
     info = await _async_get_info(client)
     if info is None or info.id != entry.unique_id:

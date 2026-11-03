@@ -1,0 +1,154 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Il dispositivo è già configurato",
+      "reauth_successful": "Riautenticazione riuscita",
+      "reconfigure_successful": "Riconfigurazione riuscita"
+    },
+    "error": {
+      "cannot_connect": "Impossibile connettersi",
+      "invalid_auth": "Autenticazione non valida",
+      "unknown": "Errore imprevisto"
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "password": "Password"
+        },
+        "description": "{name} chiede una password: inserisci quella impostata sul telecomando (Impostazioni › Configurazione web). Lascia vuoto se è stata rimossa.",
+        "title": "Password della pagina web del telecomando"
+      },
+      "reconfigure": {
+        "data": {
+          "host": "Host",
+          "password": "Password",
+          "port": "Porta"
+        },
+        "data_description": {
+          "password": "Lascia vuoto per mantenere quella attuale."
+        },
+        "description": "Nuovo indirizzo IP di questo telecomando Astrion — o di un telecomando sostitutivo che deve riprendere le sue entità e automazioni.",
+        "title": "Cambia l'indirizzo del telecomando"
+      },
+      "user": {
+        "data": {
+          "host": "Host",
+          "password": "Password",
+          "port": "Porta"
+        },
+        "data_description": {
+          "password": "Solo se sul telecomando è impostata una password (Impostazioni › Configurazione web, Astrion 1.4.6+). Altrimenti lascia vuoto."
+        },
+        "description": "Inserisci l'indirizzo IP del tuo dispositivo Astrion (il server di configurazione locale sulla porta 8080 deve essere raggiungibile).",
+        "title": "Configura Astrion Custom Dashboard"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "charging": {
+        "name": "In carica"
+      },
+      "connectivity": {
+        "name": "Connettività"
+      }
+    },
+    "button": {
+      "ring": {
+        "name": "Trova il mio telecomando"
+      }
+    },
+    "select": {
+      "activity": {
+        "name": "Attività ({room})"
+      },
+      "page": {
+        "name": "Pagina"
+      }
+    },
+    "sensor": {
+      "active_activity": {
+        "name": "Attività in corso ({room})"
+      },
+      "battery_level": {
+        "name": "Livello batteria"
+      },
+      "current_page": {
+        "name": "Pagina corrente"
+      },
+      "last_seen": {
+        "name": "Ultimo contatto"
+      }
+    },
+    "update": {
+      "app_update": {
+        "name": "Aggiornamento dell'app"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "regenerate": "Genera un nuovo id webhook"
+        },
+        "description": "Id webhook: `{webhook_id}`\nURL completo: `{webhook_url}`\n\nIncollalo nel configuratore web di Astrion per attivare il push istantaneo. Se sopra non compare alcun id, spunta la casella qui sotto per crearne uno. Puoi anche spuntarla più tardi per passare a un nuovo id (ad es. se è trapelato): in ogni caso, aggiorna poi il configuratore di Astrion con l'id mostrato qui.",
+        "title": "Webhook push di Astrion"
+      }
+    }
+  },
+  "services": {
+    "ring": {
+      "description": "\"Trova il mio telecomando\": riproduce un suono dall'altoparlante del dispositivo Astrion per qualche secondo, al volume scelto, per ritrovarlo a orecchio.",
+      "fields": {
+        "device_id": {
+          "description": "Quale dispositivo Astrion far suonare. Lascia vuoto per farli suonare tutti.",
+          "name": "Dispositivo"
+        },
+        "duration": {
+          "description": "Per quanto tempo suonare, in secondi (1-60). Predefinito: 15.",
+          "name": "Durata"
+        },
+        "sound": {
+          "description": "Quale suono predefinito del dispositivo riprodurre. Predefinito: \"ringtone\".",
+          "name": "Suono"
+        },
+        "volume": {
+          "description": "Volume della suoneria, in percentuale del volume sveglia del dispositivo (1-100). Predefinito: 80.",
+          "name": "Volume"
+        }
+      },
+      "name": "Suona"
+    },
+    "set_page": {
+      "description": "Porta la dashboard del telecomando Astrion alla pagina indicata.",
+      "fields": {
+        "page": {
+          "description": "Nome della pagina da mostrare, come in dashboard.json (maiuscole indifferenti).",
+          "name": "Pagina"
+        }
+      },
+      "name": "Imposta pagina"
+    },
+    "start_activity": {
+      "description": "Avvia un'Attività Astrion tramite il suo id, nella stanza a cui appartiene.",
+      "fields": {
+        "activity_id": {
+          "description": "Id dell'attività da avviare, come restituito dall'endpoint /activities del dispositivo Astrion.",
+          "name": "ID attività"
+        }
+      },
+      "name": "Avvia attività"
+    },
+    "stop_activity": {
+      "description": "Ferma l'Attività in corso in una stanza, senza avviarne un'altra. Per un'Attività basata su Harmony invia PowerOff solo all'hub di quell'Attività.",
+      "fields": {
+        "room": {
+          "description": "Nome della stanza da fermare, come in dashboard.json.",
+          "name": "Stanza"
+        }
+      },
+      "name": "Ferma attività"
+    }
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Gerät ist bereits konfiguriert",
+      "reauth_successful": "Die erneute Authentifizierung war erfolgreich",
+      "reconfigure_successful": "Die Neukonfiguration war erfolgreich"
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "invalid_auth": "Ungültige Authentifizierung",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "password": "Passwort"
+        },
+        "description": "{name} fragt nach einem Passwort: Gib das auf der Fernbedienung festgelegte ein (Einstellungen › Web-Konfiguration). Leer lassen, wenn es entfernt wurde.",
+        "title": "Passwort der Webseite der Fernbedienung"
+      },
+      "reconfigure": {
+        "data": {
+          "host": "Host",
+          "password": "Passwort",
+          "port": "Port"
+        },
+        "data_description": {
+          "password": "Leer lassen, um das aktuelle zu behalten."
+        },
+        "description": "Neue IP-Adresse dieser Astrion-Fernbedienung — oder einer Ersatz-Fernbedienung, die ihre Entitäten und Automatisierungen übernehmen soll.",
+        "title": "Adresse der Fernbedienung ändern"
+      },
+      "user": {
+        "data": {
+          "host": "Host",
+          "password": "Passwort",
+          "port": "Port"
+        },
+        "data_description": {
+          "password": "Nur wenn auf der Fernbedienung ein Passwort festgelegt ist (Einstellungen › Web-Konfiguration, Astrion 1.4.6+). Sonst leer lassen."
+        },
+        "description": "Gib die IP-Adresse deines Astrion-Geräts ein (der lokale Konfigurationsserver auf Port 8080 muss erreichbar sein).",
+        "title": "Astrion Custom Dashboard einrichten"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "charging": {
+        "name": "Lädt"
+      },
+      "connectivity": {
+        "name": "Konnektivität"
+      }
+    },
+    "button": {
+      "ring": {
+        "name": "Meine Fernbedienung finden"
+      }
+    },
+    "select": {
+      "activity": {
+        "name": "Aktivität ({room})"
+      },
+      "page": {
+        "name": "Seite"
+      }
+    },
+    "sensor": {
+      "active_activity": {
+        "name": "Aktive Aktivität ({room})"
+      },
+      "battery_level": {
+        "name": "Akkustand"
+      },
+      "current_page": {
+        "name": "Aktuelle Seite"
+      },
+      "last_seen": {
+        "name": "Zuletzt gesehen"
+      }
+    },
+    "update": {
+      "app_update": {
+        "name": "App-Update"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "regenerate": "Neue Webhook-ID erzeugen"
+        },
+        "description": "Webhook-ID: `{webhook_id}`\nVollständige URL: `{webhook_url}`\n\nFüge sie im Web-Konfigurator von Astrion ein, um den sofortigen Push zu aktivieren. Wird oben keine ID angezeigt, hake unten das Kästchen an, um eine zu erzeugen. Du kannst es auch später anhaken, um zu einer neuen ID zu wechseln (z. B. wenn sie bekannt geworden ist): In beiden Fällen trägst du danach die hier angezeigte ID im Konfigurator von Astrion ein.",
+        "title": "Astrion-Push-Webhook"
+      }
+    }
+  },
+  "services": {
+    "ring": {
+      "description": "\"Meine Fernbedienung finden\": spielt einige Sekunden lang einen Ton über den Lautsprecher des Astrion-Geräts ab, in der gewählten Lautstärke, damit du es nach Gehör findest.",
+      "fields": {
+        "device_id": {
+          "description": "Welches Astrion-Gerät klingeln soll. Leer lassen, damit alle klingeln.",
+          "name": "Gerät"
+        },
+        "duration": {
+          "description": "Wie lange geklingelt wird, in Sekunden (1-60). Standard: 15.",
+          "name": "Dauer"
+        },
+        "sound": {
+          "description": "Welcher Standardton des Geräts abgespielt wird. Standard: \"ringtone\".",
+          "name": "Ton"
+        },
+        "volume": {
+          "description": "Lautstärke des Klingelns, in Prozent der Weckerlautstärke des Geräts (1-100). Standard: 80.",
+          "name": "Lautstärke"
+        }
+      },
+      "name": "Klingeln"
+    },
+    "set_page": {
+      "description": "Wechselt das Dashboard der Astrion-Fernbedienung zur angegebenen Seite.",
+      "fields": {
+        "page": {
+          "description": "Name der anzuzeigenden Seite, wie in dashboard.json (Groß-/Kleinschreibung egal).",
+          "name": "Seite"
+        }
+      },
+      "name": "Seite festlegen"
+    },
+    "start_activity": {
+      "description": "Startet eine Astrion-Aktivität anhand ihrer ID, in dem Raum, zu dem sie gehört.",
+      "fields": {
+        "activity_id": {
+          "description": "ID der zu startenden Aktivität, wie sie der Endpunkt /activities des Astrion-Geräts liefert.",
+          "name": "Aktivitäts-ID"
+        }
+      },
+      "name": "Aktivität starten"
+    },
+    "stop_activity": {
+      "description": "Beendet die in einem Raum laufende Aktivität, ohne eine andere zu starten. Bei einer Harmony-Aktivität wird PowerOff nur an den Hub dieser Aktivität gesendet.",
+      "fields": {
+        "room": {
+          "description": "Name des zu beendenden Raums, wie in dashboard.json.",
+          "name": "Raum"
+        }
+      },
+      "name": "Aktivität beenden"
+    }
+  }
+}
