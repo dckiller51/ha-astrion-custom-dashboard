@@ -2,17 +2,30 @@
   "config": {
     "abort": {
       "already_configured": "Device is already configured",
+      "reauth_successful": "Re-authentication was successful",
       "reconfigure_successful": "Re-configuration was successful"
     },
     "error": {
       "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
       "unknown": "Unexpected error"
     },
     "step": {
+      "reauth_confirm": {
+        "data": {
+          "password": "Password"
+        },
+        "description": "{name} asks for a password: enter the one set on the remote (Settings › Web configuration). Leave empty if it was removed.",
+        "title": "Password of the remote's web page"
+      },
       "reconfigure": {
         "data": {
           "host": "Host",
+          "password": "Password",
           "port": "Port"
+        },
+        "data_description": {
+          "password": "Leave empty to keep the current one."
         },
         "description": "New IP address of this Astrion remote — or of a replacement remote that should take over this one's entities and automations.",
         "title": "Change the remote's address"
@@ -20,7 +33,11 @@
       "user": {
         "data": {
           "host": "Host",
+          "password": "Password",
           "port": "Port"
+        },
+        "data_description": {
+          "password": "Only if a password is set on the remote (Settings › Web configuration, Astrion 1.4.6+). Leave empty otherwise."
         },
         "description": "Enter the IP address of your Astrion device (the local config server on port 8080 must be reachable).",
         "title": "Set up Astrion Custom Dashboard"

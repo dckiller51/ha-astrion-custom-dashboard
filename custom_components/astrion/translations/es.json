@@ -1,0 +1,154 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "El dispositivo ya está configurado",
+      "reauth_successful": "La reautenticación se realizó correctamente",
+      "reconfigure_successful": "La reconfiguración se realizó correctamente"
+    },
+    "error": {
+      "cannot_connect": "No se pudo conectar",
+      "invalid_auth": "Autenticación no válida",
+      "unknown": "Error inesperado"
+    },
+    "step": {
+      "reauth_confirm": {
+        "data": {
+          "password": "Contraseña"
+        },
+        "description": "{name} pide una contraseña: introduce la definida en el mando (Ajustes › Configuración web). Déjalo vacío si se quitó.",
+        "title": "Contraseña de la página web del mando"
+      },
+      "reconfigure": {
+        "data": {
+          "host": "Host",
+          "password": "Contraseña",
+          "port": "Puerto"
+        },
+        "data_description": {
+          "password": "Déjalo vacío para conservar la actual."
+        },
+        "description": "Nueva dirección IP de este mando Astrion — o de un mando de sustitución que debe heredar sus entidades y automatizaciones.",
+        "title": "Cambiar la dirección del mando"
+      },
+      "user": {
+        "data": {
+          "host": "Host",
+          "password": "Contraseña",
+          "port": "Puerto"
+        },
+        "data_description": {
+          "password": "Solo si hay una contraseña definida en el mando (Ajustes › Configuración web, Astrion 1.4.6+). Si no, déjalo vacío."
+        },
+        "description": "Introduce la dirección IP de tu dispositivo Astrion (el servidor de configuración local en el puerto 8080 debe ser accesible).",
+        "title": "Configurar Astrion Custom Dashboard"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "charging": {
+        "name": "Cargando"
+      },
+      "connectivity": {
+        "name": "Conectividad"
+      }
+    },
+    "button": {
+      "ring": {
+        "name": "Buscar mi mando"
+      }
+    },
+    "select": {
+      "activity": {
+        "name": "Actividad ({room})"
+      },
+      "page": {
+        "name": "Página"
+      }
+    },
+    "sensor": {
+      "active_activity": {
+        "name": "Actividad en curso ({room})"
+      },
+      "battery_level": {
+        "name": "Nivel de batería"
+      },
+      "current_page": {
+        "name": "Página actual"
+      },
+      "last_seen": {
+        "name": "Visto por última vez"
+      }
+    },
+    "update": {
+      "app_update": {
+        "name": "Actualización de la app"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "regenerate": "Generar un nuevo id de webhook"
+        },
+        "description": "Id del webhook: `{webhook_id}`\nURL completa: `{webhook_url}`\n\nPégalo en el configurador web de Astrion para activar el push instantáneo. Si no aparece ningún id arriba, marca la casilla de abajo para crear uno. También puedes marcarla más tarde para cambiar a un nuevo id (p. ej. si se ha filtrado): en ambos casos, actualiza después el configurador de Astrion con el id que aparece aquí.",
+        "title": "Webhook push de Astrion"
+      }
+    }
+  },
+  "services": {
+    "ring": {
+      "description": "\"Buscar mi mando\": reproduce un sonido por el altavoz del dispositivo Astrion durante unos segundos, al volumen elegido, para encontrarlo de oído.",
+      "fields": {
+        "device_id": {
+          "description": "Qué dispositivo Astrion hacer sonar. Déjalo vacío para hacer sonar todos.",
+          "name": "Dispositivo"
+        },
+        "duration": {
+          "description": "Cuánto tiempo sonar, en segundos (1-60). Por defecto: 15.",
+          "name": "Duración"
+        },
+        "sound": {
+          "description": "Qué sonido predeterminado del dispositivo reproducir. Por defecto: \"ringtone\".",
+          "name": "Sonido"
+        },
+        "volume": {
+          "description": "Volumen del sonido, en porcentaje del volumen de alarma del dispositivo (1-100). Por defecto: 80.",
+          "name": "Volumen"
+        }
+      },
+      "name": "Hacer sonar"
+    },
+    "set_page": {
+      "description": "Lleva el panel del mando Astrion a la página indicada.",
+      "fields": {
+        "page": {
+          "description": "Nombre de la página que mostrar, como en dashboard.json (sin distinguir mayúsculas).",
+          "name": "Página"
+        }
+      },
+      "name": "Cambiar de página"
+    },
+    "start_activity": {
+      "description": "Inicia una Actividad de Astrion por su id, en la habitación a la que pertenece.",
+      "fields": {
+        "activity_id": {
+          "description": "Id de la actividad que iniciar, como lo devuelve el endpoint /activities del dispositivo Astrion.",
+          "name": "ID de actividad"
+        }
+      },
+      "name": "Iniciar actividad"
+    },
+    "stop_activity": {
+      "description": "Detiene la Actividad en curso en una habitación, sin iniciar otra. Para una Actividad basada en Harmony envía PowerOff solo al hub de esa Actividad.",
+      "fields": {
+        "room": {
+          "description": "Nombre de la habitación que detener, como en dashboard.json.",
+          "name": "Habitación"
+        }
+      },
+      "name": "Detener actividad"
+    }
+  }
+}

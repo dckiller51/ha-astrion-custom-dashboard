@@ -17,6 +17,7 @@ from custom_components.astrion.api import (
     AstrionActivity,
     AstrionActivityNotFound,
     AstrionApiError,
+    AstrionAuthError,
     AstrionClient,
     AstrionPage,
     AstrionPageNotFound,
@@ -210,3 +211,37 @@ async def test_async_ring_unknown_sound() -> None:
 
     with pytest.raises(AstrionApiError):
         await client.async_ring(volume=50, sound="nope", duration=10)
+
+
+@pytest.mark.asyncio
+async def test_password_refused_raises_auth_error() -> None:
+    """A 401 (web page password, Astrion 1.4.6+) raises AstrionAuthError."""
+    session = _fake_session(401, "password required")
+    client = AstrionClient(session, "10.0.0.5")
+
+    with pytest.raises(AstrionAuthError):
+        await client.async_get_pages()
+
+
+@pytest.mark.asyncio
+async def test_password_sent_as_basic_auth() -> None:
+    """A password is sent as HTTP Basic auth; none means no auth at all."""
+    seen: list[Any] = []
+    response = MagicMock()
+    response.status = 200
+    response.json = AsyncMock(return_value=[])
+
+    @asynccontextmanager
+    async def _request(*_args: Any, **kwargs: Any) -> AsyncIterator[MagicMock]:
+        seen.append(kwargs.get("headers"))
+        yield response
+
+    session = MagicMock()
+    session.request = _request
+
+    await AstrionClient(session, "10.0.0.5", password="secret").async_get_pages()
+    await AstrionClient(session, "10.0.0.5").async_get_pages()
+
+    # "astrion:secret" in base64
+    assert seen[0] == {"Authorization": "Basic YXN0cmlvbjpzZWNyZXQ="}
+    assert seen[1] is None

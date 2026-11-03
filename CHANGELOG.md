@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 <!--next-version-placeholder-->
 
+## 2026.11.0
+
+### 🔒 Remote with a password
+
+- **Web page password (Astrion 1.4.6+).** When a password is set on the remote (Settings › Web configuration), every request needs it. Enter it in the integration: when adding the remote, in **Reconfigure** (empty keeps the saved one), or when Home Assistant asks for it (**re-authentication**) after it was set or changed on the remote. Without a password on the remote, leave the field empty: nothing changes.
+
+### 🌍 Translations
+
+- **Italian, Spanish and German**, like the Astrion app: setup, entities, options and services.
+
 ## 2026.10.0
 
 ### ✨ New features

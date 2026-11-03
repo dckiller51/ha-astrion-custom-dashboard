@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -14,6 +15,7 @@ from homeassistant.util import dt as dt_util
 from .api import (
     AstrionActivity,
     AstrionApiError,
+    AstrionAuthError,
     AstrionBattery,
     AstrionClient,
     AstrionInfo,
@@ -107,6 +109,9 @@ class AstrionCoordinator(DataUpdateCoordinator[AstrionData]):
             active_by_room = await self.client.async_get_active_activities()
             version = await self.client.async_get_version()
             battery = await self.client.async_get_battery()
+        except AstrionAuthError as err:
+            # Password set or changed on the remote: Home Assistant asks for it (reauth).
+            raise ConfigEntryAuthFailed(str(err)) from err
         except AstrionApiError as err:
             raise UpdateFailed(str(err)) from err
 

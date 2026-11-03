@@ -7,6 +7,7 @@ assumption Astrion itself makes, see Configserver.kt's own doc comment.
 
 from __future__ import annotations
 
+import base64
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -20,6 +21,10 @@ DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=5)
 
 class AstrionApiError(Exception):
     """Raised when the Astrion device can't be reached or returns an error."""
+
+
+class AstrionAuthError(AstrionApiError):
+    """The remote has a web page password, and it's missing or wrong (Astrion 1.4.6+)."""
 
 
 class AstrionPageNotFound(AstrionApiError):
@@ -94,15 +99,35 @@ class AstrionActivity:
     icon: str | None = None
 
 
+def _basic_credentials(user: str, password: str) -> str:
+    """Return the base64 part of an HTTP Basic Authorization header."""
+    return base64.b64encode(f"{user}:{password}".encode()).decode("ascii")
+
+
 class AstrionClient:
     """Thin async wrapper around Astrion's local HTTP config server."""
 
     def __init__(
-        self, session: aiohttp.ClientSession, host: str, port: int = 8080
+        self,
+        session: aiohttp.ClientSession,
+        host: str,
+        port: int = 8080,
+        password: str | None = None,
     ) -> None:
-        """Initialize the client."""
+        """Initialize the client.
+
+        `password`: the remote's web page password (Astrion 1.4.6+, set on the
+        remote in Settings › Web configuration), sent as HTTP Basic auth.
+        """
         self._session = session
         self._base_url = f"http://{host}:{port}"
+        # Built by hand: aiohttp.BasicAuth is deprecated, and encode_basic_auth()
+        # only exists in recent aiohttp versions.
+        self._headers = (
+            {"Authorization": "Basic " + _basic_credentials("astrion", password)}
+            if password
+            else None
+        )
 
     async def async_get_pages(self) -> list[AstrionPage]:
         """Return the dashboard's pages, in pager order."""
@@ -229,8 +254,14 @@ class AstrionClient:
         url = f"{self._base_url}{path}"
         try:
             async with self._session.request(
-                method, url, data=data, timeout=DEFAULT_TIMEOUT
+                method, url, data=data, timeout=DEFAULT_TIMEOUT, headers=self._headers
             ) as response:
+                if response.status == 401:
+                    raise AstrionAuthError(
+                        "The remote's web page asks for a password"
+                        if self._headers is None
+                        else "Wrong password for the remote's web page"
+                    )
                 if response.status == 404 and path == "/info":
                     return None  # app older than 1.2.7
                 if response.status == 404 and path == "/set-page":

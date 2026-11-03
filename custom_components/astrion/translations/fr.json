@@ -2,17 +2,30 @@
   "config": {
     "abort": {
       "already_configured": "Cet appareil est déjà configuré",
+      "reauth_successful": "La ré-authentification a réussi",
       "reconfigure_successful": "Reconfiguration réussie"
     },
     "error": {
       "cannot_connect": "Échec de connexion",
+      "invalid_auth": "Authentification invalide",
       "unknown": "Erreur inattendue"
     },
     "step": {
+      "reauth_confirm": {
+        "data": {
+          "password": "Mot de passe"
+        },
+        "description": "{name} demande un mot de passe : entrez celui défini sur la télécommande (Réglages › Configuration web). Laissez vide s'il a été supprimé.",
+        "title": "Mot de passe de la page web de la télécommande"
+      },
       "reconfigure": {
         "data": {
           "host": "Hôte",
+          "password": "Mot de passe",
           "port": "Port"
+        },
+        "data_description": {
+          "password": "Laissez vide pour garder l'actuel."
         },
         "description": "Nouvelle adresse IP de cette télécommande Astrion — ou d'une télécommande de remplacement qui doit reprendre ses entités et automatisations.",
         "title": "Changer l'adresse de la télécommande"
@@ -20,7 +33,11 @@
       "user": {
         "data": {
           "host": "Hôte",
+          "password": "Mot de passe",
           "port": "Port"
+        },
+        "data_description": {
+          "password": "Seulement si un mot de passe est défini sur la télécommande (Réglages › Configuration web, Astrion 1.4.6+). Sinon, laissez vide."
         },
         "description": "Entrez l'adresse IP de votre appareil Astrion (le serveur de configuration local sur le port 8080 doit être joignable).",
         "title": "Configurer Astrion Custom Dashboard"
