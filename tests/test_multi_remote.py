@@ -20,9 +20,9 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.astrion import _async_follow_new_address
-from custom_components.astrion.api import AstrionInfo, AstrionPage
-from custom_components.astrion.const import (
+from custom_components.astrion_custom import _async_follow_new_address
+from custom_components.astrion_custom.api import AstrionInfo, AstrionPage
+from custom_components.astrion_custom.const import (
     CONF_ENTITY_PREFIX,
     DOMAIN,
     EVENT_ASTRION,
@@ -212,7 +212,7 @@ async def test_follow_new_address_checks_identity(hass: HomeAssistant) -> None:
 
     other = AstrionInfo(id="astrion-somebody-else", name="Bedroom")
     with patch(
-        "custom_components.astrion.api.AstrionClient.async_get_info",
+        "custom_components.astrion_custom.api.AstrionClient.async_get_info",
         AsyncMock(return_value=other),
     ):
         await _async_follow_new_address(hass, entry, "10.0.0.33")

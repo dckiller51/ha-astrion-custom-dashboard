@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.astrion.api import (
+from custom_components.astrion_custom.api import (
     AstrionActivity,
     AstrionActivityNotFound,
     AstrionApiError,

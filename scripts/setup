@@ -11,7 +11,7 @@ python3 -m pip install --upgrade pip setuptools wheel
 # editable_mode=compat: a plain .pth path entry. The default "strict" editable
 # install adds an import-hook entry to custom_components.__path__, which Home
 # Assistant's loader then tries to list as a directory (FileNotFoundError:
-# '__editable__.astrion-….finder.__path_hook__') — every test loading the
+# '__editable__.astrion_custom-….finder.__path_hook__') — every test loading the
 # integration fails.
 python3 -m pip install --upgrade --upgrade-strategy eager -e ".[dev]" \
     --config-settings editable_mode=compat

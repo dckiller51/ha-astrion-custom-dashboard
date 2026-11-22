@@ -1,6 +1,6 @@
 <!-- markdownlint-disable-next-line MD033 -->
 
-# <img src="custom_components/astrion/brand/icon@2x.png" width="48" align="center" alt="Astrion Custom Icon"> Astrion Custom Dashboard
+# <img src="custom_components/astrion_custom/brand/icon@2x.png" width="48" align="center" alt="Astrion Custom Icon"> Astrion Custom Dashboard
 
 [![GH-release](https://img.shields.io/github/v/release/dckiller51/ha-astrion-custom-dashboard.svg?style=flat-square)](https://github.com/dckiller51/ha-astrion-custom-dashboard/releases)
 [![GH-downloads](https://img.shields.io/github/downloads/dckiller51/ha-astrion-custom-dashboard/total?style=flat-square)](https://github.com/dckiller51/ha-astrion-custom-dashboard/releases)
@@ -26,8 +26,18 @@ Add this repository as a custom repository in HACS, then install
 
 ### Manual
 
-Copy `custom_components/astrion` into your Home Assistant `custom_components/`
+Copy `custom_components/astrion_custom` into your Home Assistant `custom_components/`
 directory, then restart Home Assistant.
+
+### Updating from 2026.11.0 or earlier
+
+The integration's domain is now **`astrion_custom`** (it was `astrion`, the same as
+Sanytron's official "Astrion Home" integration, so only one of them could load). Both can
+now be installed side by side. After updating: delete the old `custom_components/astrion`
+folder (unless it is now Sanytron's), restart, delete the old entry in _Devices &
+services_, add the remote again, and rename the services in your automations
+(`astrion.ring` → `astrion_custom.ring`, and so on). The `astrion_event` event doesn't
+change. Details in the [changelog](CHANGELOG.md).
 
 ## Configuration
 
@@ -57,39 +67,39 @@ entry's **Reconfigure**.
   pressing it rings the device's own speaker for a few seconds at a fixed
   default volume/sound/duration. For anything more specific — a different
   volume, sound, duration, or targeting one device in a multi-device home
-  — use the `astrion.ring` service below instead.
-- `astrion.set_page` service — a name-based shortcut:
+  — use the `astrion_custom.ring` service below instead.
+- `astrion_custom.set_page` service — a name-based shortcut:
 
   ```yaml
-  service: astrion.set_page
+  service: astrion_custom.set_page
   data:
     page: "Media"
   ```
 
-- `astrion.start_activity` service — starts an Activity by id (as returned
+- `astrion_custom.start_activity` service — starts an Activity by id (as returned
   by the device's `/activities` endpoint) without needing its room's
   `select.activity_<room>` entity_id:
 
   ```yaml
-  service: astrion.start_activity
+  service: astrion_custom.start_activity
   data:
     activity_id: "watch_appletv"
   ```
 
-- `astrion.stop_activity` service — stops whichever Activity is active in a
+- `astrion_custom.stop_activity` service — stops whichever Activity is active in a
   given room, by room name:
 
   ```yaml
-  service: astrion.stop_activity
+  service: astrion_custom.stop_activity
   data:
     room: "Salon"
   ```
 
-- `astrion.ring` service — "find my remote" with control over how: plays a
+- `astrion_custom.ring` service — "find my remote" with control over how: plays a
   sound on the device's own speaker so you can locate it by ear.
 
   ```yaml
-  service: astrion.ring
+  service: astrion_custom.ring
   data:
     volume: 90 # 1-100%, default 80
     sound: "alarm" # "ringtone" | "alarm" | "notification", default "ringtone"
