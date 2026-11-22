@@ -33,9 +33,10 @@ directory, then restart Home Assistant.
 
 The integration's domain is now **`astrion_custom`** (it was `astrion`, the same as
 Sanytron's official "Astrion Home" integration, so only one of them could load). Both can
-now be installed side by side. After updating: delete the old `custom_components/astrion`
-folder (unless it is now Sanytron's), restart, delete the old entry in _Devices &
-services_, add the remote again, and rename the services in your automations
+now be installed side by side. After updating (HACS removes the old `custom_components/astrion`
+folder by itself), restart, delete the old entry in _Devices & services_, add the remote
+again, paste its new webhook id on the remote's web page (_Home Assistant › Connection
+settings_), and rename the services in your automations
 (`astrion.ring` → `astrion_custom.ring`, and so on). The `astrion_event` event doesn't
 change. Details in the [changelog](CHANGELOG.md).
 
