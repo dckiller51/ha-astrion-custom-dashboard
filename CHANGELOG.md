@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 <!--next-version-placeholder-->
 
+## 2026.11.1
+
+### ⚠️ New domain: `astrion_custom`
+
+Sanytron's official integration for the Astrion remote ("Astrion Home") uses the `astrion` domain too, and Home Assistant only loads one integration per domain: with both installed, one replaced the other. This integration is now **`astrion_custom`** (folder `custom_components/astrion_custom`), so both can be installed side by side.
+
+**Updating from 2026.11.0 or earlier**
+
+1. Update in HACS (or copy `custom_components/astrion_custom`), then delete the old `custom_components/astrion` folder, unless it is now Sanytron's integration.
+2. Restart Home Assistant.
+3. In _Settings › Devices & services_, delete the old **Astrion Custom Dashboard** entry (it shows as not loaded), then add the remote again (IP address, and password if set).
+4. Services are now `astrion_custom.set_page`, `astrion_custom.start_activity`, `astrion_custom.stop_activity` and `astrion_custom.ring`: change them in your automations and scripts.
+
+Entities keep their names when the remote's name is the same. The `astrion_event` event doesn't change.
+
 ## 2026.11.0
 
 ### 🔒 Remote with a password

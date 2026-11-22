@@ -16,8 +16,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 
-from custom_components.astrion.api import AstrionApiError, AstrionPage
-from custom_components.astrion.const import (
+from custom_components.astrion_custom.api import AstrionApiError, AstrionPage
+from custom_components.astrion_custom.const import (
     DEFAULT_RING_DURATION,
     DEFAULT_RING_VOLUME,
     DOMAIN,
@@ -70,7 +70,7 @@ async def test_ring_button_exists(hass: HomeAssistant) -> None:
 async def test_ring_button_press_uses_defaults(hass: HomeAssistant) -> None:
     """Pressing the button rings at the documented default volume/sound/duration.
 
-    This is the whole point of the button over the astrion.ring service: no
+    This is the whole point of the button over the astrion_custom.ring service: no
     parameters to pass, so it must fall back to exactly these three
     constants — if a future edit changes what the button rings at without
     updating const.py (or vice versa), this is what would catch it.
@@ -80,7 +80,7 @@ async def test_ring_button_press_uses_defaults(hass: HomeAssistant) -> None:
     entity_id = _find_ring_button_entity_id(hass, entry.entry_id)
 
     with patch(
-        "custom_components.astrion.api.AstrionClient.async_ring",
+        "custom_components.astrion_custom.api.AstrionClient.async_ring",
         AsyncMock(return_value=None),
     ) as mock_ring:
         await hass.services.async_call(
@@ -108,7 +108,7 @@ async def test_ring_button_press_device_unreachable(hass: HomeAssistant) -> None
 
     with (
         patch(
-            "custom_components.astrion.api.AstrionClient.async_ring",
+            "custom_components.astrion_custom.api.AstrionClient.async_ring",
             AsyncMock(side_effect=AstrionApiError("no route to host")),
         ),
         pytest.raises(HomeAssistantError),

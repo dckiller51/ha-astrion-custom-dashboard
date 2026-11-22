@@ -18,14 +18,14 @@ from homeassistant.const import CONF_HOST, CONF_PORT, CONF_WEBHOOK_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.astrion.api import (
+from custom_components.astrion_custom.api import (
     AstrionApiError,
     AstrionBattery,
     AstrionInfo,
     AstrionPage,
     AstrionVersion,
 )
-from custom_components.astrion.const import DOMAIN
+from custom_components.astrion_custom.const import DOMAIN
 
 pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
@@ -50,35 +50,35 @@ def _mock_reachable_device(
     """
     with (
         patch(
-            "custom_components.astrion.api.AstrionClient.async_get_pages",
+            "custom_components.astrion_custom.api.AstrionClient.async_get_pages",
             AsyncMock(return_value=pages),
         ),
         patch(
-            "custom_components.astrion.api.AstrionClient.async_get_current_page",
+            "custom_components.astrion_custom.api.AstrionClient.async_get_current_page",
             AsyncMock(return_value=pages[0] if pages else None),
         ),
         patch(
-            "custom_components.astrion.api.AstrionClient.async_get_activities",
+            "custom_components.astrion_custom.api.AstrionClient.async_get_activities",
             AsyncMock(return_value=[]),
         ),
         patch(
-            "custom_components.astrion.api.AstrionClient.async_get_active_activities",
+            "custom_components.astrion_custom.api.AstrionClient.async_get_active_activities",
             AsyncMock(return_value={}),
         ),
         patch(
-            "custom_components.astrion.api.AstrionClient.async_get_version",
+            "custom_components.astrion_custom.api.AstrionClient.async_get_version",
             AsyncMock(return_value=AstrionVersion(version="0.9.0", version_code=9)),
         ),
         patch(
-            "custom_components.astrion.api.AstrionClient.async_get_battery",
+            "custom_components.astrion_custom.api.AstrionClient.async_get_battery",
             AsyncMock(return_value=AstrionBattery(level=100, charging=False)),
         ),
         patch(
-            "custom_components.astrion.api.AstrionClient.async_get_info",
+            "custom_components.astrion_custom.api.AstrionClient.async_get_info",
             AsyncMock(return_value=info),
         ),
         patch(
-            "custom_components.astrion.update.AstrionUpdateCoordinator._async_update_data",
+            "custom_components.astrion_custom.update.AstrionUpdateCoordinator._async_update_data",
             AsyncMock(return_value=None),
         ),
     ):
@@ -116,7 +116,7 @@ async def test_user_flow_cannot_connect(hass: HomeAssistant) -> None:
     )
 
     with patch(
-        "custom_components.astrion.config_flow.AstrionClient.async_get_pages",
+        "custom_components.astrion_custom.config_flow.AstrionClient.async_get_pages",
         AsyncMock(side_effect=AstrionApiError("no route to host")),
     ):
         result = await hass.config_entries.flow.async_configure(
@@ -134,7 +134,7 @@ async def test_user_flow_no_pages(hass: HomeAssistant) -> None:
     )
 
     with patch(
-        "custom_components.astrion.config_flow.AstrionClient.async_get_pages",
+        "custom_components.astrion_custom.config_flow.AstrionClient.async_get_pages",
         AsyncMock(return_value=[]),
     ):
         result = await hass.config_entries.flow.async_configure(

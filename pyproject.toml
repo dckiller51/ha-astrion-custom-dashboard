@@ -3,8 +3,8 @@ requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "astrion"
-version = "2026.11.0"
+name = "astrion_custom"
+version = "2026.11.1"
 description = "Home Assistant custom integration to remotely control and automate an Astrion Custom Dashboard remote"
 readme = "README.md"
 license = { text = "Apache-2.0" }

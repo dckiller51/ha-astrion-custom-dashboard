@@ -9,6 +9,6 @@ cd "$(dirname "$0")/.."
 export PYTHONPATH="${PYTHONPATH}:${PWD}"
 
 mkdir -p config/custom_components
-ln -sf "${PWD}/custom_components/astrion" config/custom_components/astrion
+ln -sf "${PWD}/custom_components/astrion_custom" config/custom_components/astrion_custom
 
 python3 -m homeassistant --config config --debug

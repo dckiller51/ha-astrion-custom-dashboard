@@ -35,7 +35,7 @@ async def async_setup_entry(
 class AstrionRingButton(CoordinatorEntity[AstrionCoordinator], ButtonEntity):
     """'Find my remote' button — rings the device at fixed default settings.
 
-    This is the one-click complement to the `astrion.ring` service, not a
+    This is the one-click complement to the `astrion_custom.ring` service, not a
     replacement for it: this button has no way to take parameters, so it
     always rings at DEFAULT_RING_VOLUME/SOUND_RINGTONE/DEFAULT_RING_DURATION
     (see const.py). Reaching for a specific volume, sound, or duration — or

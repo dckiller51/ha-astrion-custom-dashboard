@@ -565,7 +565,7 @@ def _async_target_entries(
 
 
 async def _async_set_page(hass: HomeAssistant, call: ServiceCall) -> None:
-    """Handle astrion.set_page — see services.yaml.
+    """Handle astrion_custom.set_page — see services.yaml.
 
     Applies to every configured Astrion device — mirrors calling
     select.select_option on every astrion select entity, but lets an
@@ -589,7 +589,7 @@ async def _async_set_page(hass: HomeAssistant, call: ServiceCall) -> None:
 
 
 async def _async_start_activity(hass: HomeAssistant, call: ServiceCall) -> None:
-    """Handle astrion.start_activity — see services.yaml.
+    """Handle astrion_custom.start_activity — see services.yaml.
 
     Same "every configured device" fan-out as set_page — a no-op for
     devices that don't have an Activity with this id, since activity ids
@@ -628,7 +628,7 @@ async def _async_start_activity(hass: HomeAssistant, call: ServiceCall) -> None:
 
 
 async def _async_stop_activity(hass: HomeAssistant, call: ServiceCall) -> None:
-    """Handle astrion.stop_activity — see services.yaml.
+    """Handle astrion_custom.stop_activity — see services.yaml.
 
     Same fan-out again, skipping devices with no such room — room names
     are only unique within one device's dashboard.json. `device_id`
@@ -657,7 +657,7 @@ async def _async_stop_activity(hass: HomeAssistant, call: ServiceCall) -> None:
 
 
 async def _async_ring(hass: HomeAssistant, call: ServiceCall) -> None:
-    """Handle astrion.ring — see services.yaml.
+    """Handle astrion_custom.ring — see services.yaml.
 
     Rings every configured device unless `device_id` narrows it to one —
     see _async_target_entries.

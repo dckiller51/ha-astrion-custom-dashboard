@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import pytest
 
-from custom_components.astrion.const import APK_RELEASES_API_URL
-from custom_components.astrion.update import (
+from custom_components.astrion_custom.const import APK_RELEASES_API_URL
+from custom_components.astrion_custom.update import (
     AstrionLatestRelease,
     AstrionUpdateCoordinator,
 )

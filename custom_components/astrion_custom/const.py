@@ -2,7 +2,7 @@
 
 from homeassistant.const import Platform
 
-DOMAIN = "astrion"
+DOMAIN = "astrion_custom"
 PLATFORMS = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,

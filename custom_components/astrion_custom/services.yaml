@@ -9,7 +9,7 @@ set_page:
       required: false
       selector:
         device:
-          integration: astrion
+          integration: astrion_custom
 start_activity:
   fields:
     activity_id:
@@ -21,7 +21,7 @@ start_activity:
       required: false
       selector:
         device:
-          integration: astrion
+          integration: astrion_custom
 stop_activity:
   fields:
     room:
@@ -33,14 +33,14 @@ stop_activity:
       required: false
       selector:
         device:
-          integration: astrion
+          integration: astrion_custom
 ring:
   fields:
     device_id:
       required: false
       selector:
         device:
-          integration: astrion
+          integration: astrion_custom
     volume:
       required: false
       example: 80
